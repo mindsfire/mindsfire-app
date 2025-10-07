@@ -15,7 +15,7 @@ const nav = [
 function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="sticky top-0 h-dvh bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
+    <aside className="sticky top-0 h-[calc(100dvh-120px)] bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
       <div className="flex h-14 items-center px-4">
         <div className="h-6 w-6 rounded-sm bg-primary/80" />
         <span className="sr-only">Logo</span>
@@ -49,8 +49,8 @@ function Sidebar() {
 
 function Topbar() {
   return (
-    <header className="sticky top-0 z-10 h-30 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="w-full px-15 grid h-30 items-center grid-cols-[160px_1fr_160px]">
+    <header className="h-[120px] bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="w-full px-[60px] grid h-[120px] items-center grid-cols-[160px_1fr_160px]">
         {/* Left: Logo (tucked) */}
         <div className="flex items-center">
           <Link aria-label="Homepage" href="/dashboard" className="relative flex w-fit items-center overflow-hidden">
@@ -82,7 +82,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       <Topbar />
-      <div className="mx-auto w-full max-w-7xl px-6 grid grid-cols-[260px_24px_1fr]">
+      <div className="mx-auto w-full max-w-7xl px-6 grid grid-cols-[260px_24px_1fr] min-h-[calc(100dvh-120px)]">
         <Sidebar />
         {/* gutter column to create visual gap like Cursor (no border) */}
         <div aria-hidden className="hidden md:block" />
