@@ -118,7 +118,7 @@
   /* light variant */
   --background: #f0f8ff;
   --foreground: #0b0f14;
-  --card: #ffffff;
+  --card: #E7F1FF; /* match selected sidebar */
   --card-foreground: #0b0f14;
   --popover: #ffffff;
   --popover-foreground: #0b0f14;
@@ -131,7 +131,7 @@
   --accent: #37B6F6; /* sky accent */
   --accent-foreground: #0b2035;
   --destructive: #EF4444;
-  --border: #e5e7eb;
+  --border: #e6edf5; /* subtle bluish border */
   --input: #e5e7eb;
   --ring: #1F6FE5;
   /* charts & sidebar */

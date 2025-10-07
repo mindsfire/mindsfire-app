@@ -30,17 +30,17 @@ function Sidebar() {
                 <Link
                   href={item.href}
                   className={[
-                    "flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-colors",
+                    "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
                     active
                       ? "bg-secondary text-secondary-foreground"
-                      : "hover:bg-accent hover:text-accent-foreground",
+                      : "hover:bg-secondary hover:text-[#0a0c10]",
                   ].join(" ")}
                 >
                   <item.icon className={[
-                    "size-4",
-                    active ? "text-secondary-foreground" : "text-muted-foreground group-hover:text-foreground",
+                    "size-4 [stroke-width:2]",
+                    active ? "text-secondary-foreground" : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
                   ].join(" ")} />
-                  <span>{item.label}</span>
+                  <span className="group-hover:font-semibold">{item.label}</span>
                 </Link>
               </li>
             );
