@@ -4,24 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Gauge, Settings, Puzzle, UsersRound } from "lucide-react";
 
 const nav = [
-  { href: "/overview", label: "Overview" },
-  { href: "/settings", label: "Settings" },
-  { href: "/integrations", label: "Integrations" },
-  { href: "/users", label: "Users" },
-];
+  { href: "/overview", label: "Overview", icon: Gauge },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/integrations", label: "Integrations", icon: Puzzle },
+  { href: "/users", label: "Users", icon: UsersRound },
+] as const;
 
 function Sidebar() {
   const pathname = usePathname();
   return (
     <aside className="sticky top-0 h-[calc(100dvh-120px)] bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
-      <div className="flex h-14 items-center px-4">
-        <div className="h-6 w-6 rounded-sm bg-primary/80" />
-        <span className="sr-only">Logo</span>
+      <div className="px-4 py-4 space-y-1 h-[64px]">
+        <div className="text-sm font-semibold leading-tight truncate">Sandesh Parjanya</div>
+        <div className="text-xs text-muted-foreground leading-tight">Free Plan</div>
       </div>
       <nav className="px-2 pb-4">
-        <div className="px-2 text-xs uppercase text-muted-foreground mb-2">General</div>
         <ul className="space-y-1">
           {nav.map((item) => {
             const active = pathname === item.href || pathname?.startsWith(item.href);
@@ -36,6 +36,10 @@ function Sidebar() {
                       : "hover:bg-accent hover:text-accent-foreground",
                   ].join(" ")}
                 >
+                  <item.icon className={[
+                    "size-4",
+                    active ? "text-secondary-foreground" : "text-muted-foreground group-hover:text-foreground",
+                  ].join(" ")} />
                   <span>{item.label}</span>
                 </Link>
               </li>
@@ -86,7 +90,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Sidebar />
         {/* gutter column to create visual gap like Cursor (no border) */}
         <div aria-hidden className="hidden md:block" />
-        <main className="w-full py-6">
+        <main className="w-full pt-4 pb-6">
           {children}
         </main>
       </div>
