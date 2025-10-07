@@ -49,9 +49,30 @@ function Sidebar() {
 
 function Topbar() {
   return (
-    <header className="sticky top-0 z-10 h-14 border-b bg-card/70 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-end px-6">
-        <Button variant="outline" size="sm">Action</Button>
+    <header className="sticky top-0 z-10 h-30 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="w-full px-15 grid h-30 items-center grid-cols-[160px_1fr_160px]">
+        {/* Left: Logo (tucked) */}
+        <div className="flex items-center">
+          <Link aria-label="Homepage" href="/dashboard" className="relative flex w-fit items-center overflow-hidden">
+            <div className="pointer-events-none relative size-6 lg:size-8">
+              <div className="absolute inset-0 rounded-sm bg-primary/80" />
+            </div>
+          </Link>
+        </div>
+
+        {/* Center: Section tabs */}
+        <div className="flex items-center justify-center">
+          <p className="text-base leading-6">Dashboard</p>
+        </div>
+
+        {/* Right: Avatar (tucked) */}
+        <div className="flex items-center justify-end">
+          <button aria-label="User menu" className="flex h-12 w-12 items-center justify-center rounded-full outline-none focus:outline-none">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
+              <span className="text-sm font-medium">SP</span>
+            </div>
+          </button>
+        </div>
       </div>
     </header>
   );
