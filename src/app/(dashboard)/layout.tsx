@@ -17,11 +17,11 @@ function Sidebar() {
   const pathname = usePathname();
   return (
     <aside className="sticky top-0 h-[calc(100dvh-120px)] bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
-      <div className="px-4 py-4 space-y-1 h-[64px]">
+      <div className="pl-2 px-0 py-4 space-y-1 h-[64px]">
         <div className="text-sm font-semibold leading-tight truncate">Sandesh Parjanya</div>
         <div className="text-xs text-muted-foreground leading-tight">Free Plan</div>
       </div>
-      <nav className="px-2 pb-4">
+      <nav className="px-0 pb-4">
         <ul className="space-y-1">
           {nav.map((item) => {
             const active = pathname === item.href || pathname?.startsWith(item.href);
@@ -30,7 +30,7 @@ function Sidebar() {
                 <Link
                   href={item.href}
                   className={[
-                    "flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors",
+                    "flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-colors",
                     active
                       ? "bg-secondary text-secondary-foreground"
                       : "hover:bg-accent hover:text-accent-foreground",
@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       <Topbar />
-      <div className="mx-auto w-full max-w-7xl px-6 grid grid-cols-[260px_24px_1fr] min-h-[calc(100dvh-120px)]">
+      <div className="mx-auto w-full max-w-7xl px-6 grid grid-cols-[260px_20px_1fr] min-h-[calc(100dvh-120px)]">
         <Sidebar />
         {/* gutter column to create visual gap like Cursor (no border) */}
         <div aria-hidden className="hidden md:block" />
