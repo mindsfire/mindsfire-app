@@ -38,9 +38,11 @@ function Sidebar() {
                 >
                   <item.icon className={[
                     "size-4 [stroke-width:2]",
-                    active ? "text-secondary-foreground" : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
+                    active
+                      ? "text-secondary-foreground [stroke-width:2.5]"
+                      : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
                   ].join(" ")} />
-                  <span className="group-hover:font-semibold">{item.label}</span>
+                  <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
                 </Link>
               </li>
             );
