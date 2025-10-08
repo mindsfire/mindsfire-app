@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 // These must be defined in your environment. In Next.js, put them in .env.local
 // NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are safe to expose to the browser.
@@ -12,4 +12,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl ?? "", supabaseAnonKey ?? "");
+export const supabase = createBrowserClient(supabaseUrl ?? "", supabaseAnonKey ?? "");
