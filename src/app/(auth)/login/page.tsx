@@ -3,11 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,12 +22,24 @@ export default function LoginPage() {
       const email = String(formData.get("email") || "").trim();
       const password = String(formData.get("password") || "");
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(error.message);
         return;
       }
-      router.push("/overview");
+      // Ensure server has the session cookies set for middleware
+      const access_token = data.session?.access_token;
+      const refresh_token = data.session?.refresh_token;
+      if (access_token && refresh_token) {
+        await fetch("/api/auth/set-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ access_token, refresh_token }),
+        });
+      }
+      const next = searchParams.get("redirect") || "/overview";
+      router.replace(next);
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong. Please try again.");
     } finally {
