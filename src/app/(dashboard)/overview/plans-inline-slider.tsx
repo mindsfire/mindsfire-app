@@ -55,7 +55,7 @@ export default function PlansInlineSlider({
       {/* Overlay chevrons: appear on hover, centered vertically */}
       <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-10 opacity-0 transition-opacity group-hover:opacity-100">
         <div className="relative h-full">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 pl-1">
+          <div className="absolute -left-5 top-1/2 -translate-y-1/2 pl-1">
             <button
               aria-label="Previous plans"
               onClick={prev}
@@ -65,7 +65,7 @@ export default function PlansInlineSlider({
               <ChevronLeft className="h-4 w-4" />
             </button>
           </div>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pr-1">
+          <div className="absolute -right-4 top-1/2 -translate-y-1/2 pr-1">
             <button
               aria-label="Next plans"
               onClick={next}
