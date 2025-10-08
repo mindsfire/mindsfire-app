@@ -3,12 +3,26 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ArrowUpCircle } from "lucide-react";
 
+type Features = {
+  description?: string;
+  hourly_rate?: number;
+  additional_hourly_rate?: number;
+  rollover_percent?: number;
+  billing?: string;
+  most_popular?: boolean;
+  dedicated_or_fractional?: boolean;
+  custom_tasks?: boolean;
+  technical_support?: boolean;
+  planning_and_scheduling?: boolean;
+  sort_index?: number;
+};
+
 export type Plan = {
   id: string;
   name: string;
   monthly_price: number | null;
   quota_hours: number | null;
-  features: any;
+  features: Features;
 };
 
 export default function PlansInlineSlider({

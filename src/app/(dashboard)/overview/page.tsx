@@ -1,13 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
-import { ArrowUpCircle } from "lucide-react";
 import PlansInlineSlider from "./plans-inline-slider";
+
+type Features = {
+  description?: string;
+  hourly_rate?: number;
+  additional_hourly_rate?: number;
+  rollover_percent?: number;
+  billing?: string;
+  most_popular?: boolean;
+  dedicated_or_fractional?: boolean;
+  custom_tasks?: boolean;
+  technical_support?: boolean;
+  planning_and_scheduling?: boolean;
+  sort_index?: number;
+};
 
 type Plan = {
   id: string;
   name: string;
   monthly_price: number | null;
   quota_hours: number | null;
-  features: any;
+  features: Features;
 };
 
 export default async function OverviewPage() {
@@ -20,12 +33,6 @@ export default async function OverviewPage() {
     .from("plans")
     .select("id,name,monthly_price,quota_hours,features")
     .order("monthly_price", { ascending: true, nullsFirst: true });
-
-  // Pick exact three plans in desired order
-  const order = ["Lite", "Starter", "Essential"] as const;
-  const three = order
-    .map((n) => (plans as Plan[]).find((p) => p.name === n))
-    .filter(Boolean) as Plan[];
 
   return (
     <div className="space-y-6">
