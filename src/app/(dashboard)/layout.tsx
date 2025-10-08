@@ -86,7 +86,7 @@ function Topbar() {
   };
 
   return (
-    <header className="h-[120px] bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="relative z-50 h-[120px] bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="w-full px-[60px] grid h-[120px] items-center grid-cols-[160px_1fr_160px]">
         {/* Left: Logo (wordmark) */}
         <div className="flex items-center">
@@ -119,7 +119,7 @@ function Topbar() {
             </div>
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-12 w-64 rounded-lg border border-border bg-card text-card-foreground shadow-lg p-3">
+            <div className="absolute right-0 top-12 z-50 w-64 rounded-lg border border-border bg-card text-card-foreground shadow-lg p-3">
               <div className="pb-3 mb-3 border-b border-border">
                 <div className="text-sm font-semibold truncate">{profile.name ?? "Account"}</div>
                 {profile.email && (
