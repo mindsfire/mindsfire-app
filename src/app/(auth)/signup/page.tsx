@@ -98,7 +98,7 @@ export default function SignupPage() {
         </div>
 
         {/* Disclaimer pinned to bottom of left panel */}
-        <div className="w-full max-w-sm mx-auto pt-6 text-center text-xs text-muted-foreground">
+        <div className="w-full max-w-sm mx-auto pt-27 text-center text-xs text-muted-foreground">
           By creating an account, you agree to the{' '}
           <Link href="/terms" className="underline text-foreground">Terms of Service</Link>
           {' '}and{' '}
@@ -107,8 +107,8 @@ export default function SignupPage() {
       </section>
 
       {/* Right: Testimonials (70%) - white background for content to stand out */}
-      <section className="bg-white text-slate-900 p-8 md:p-12 flex items-center justify-center">
-        <div className="w-full max-w-3xl space-y-6 mx-auto">
+      <section className="bg-white text-slate-900 p-8 md:p-12 flex items-center justify-center min-h-[calc(100dvh-120px)]">
+        <div className="w-full max-w-3xl space-y-6 mx-auto -mt-27 md:-mt-52">
           <h2 className="text-xl font-semibold">Why teams choose us</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">

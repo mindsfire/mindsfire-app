@@ -34,7 +34,7 @@ export default function LoginPage() {
         <section className="bg-background text-foreground flex flex-col p-6 md:p-10 min-h-[calc(100dvh-120px)]">
           <div className="w-full max-w-sm mx-auto flex-1 flex items-center">
             <div className="w-full">
-              <h1 className="text-2xl font-semibold mb-2">Welcome back</h1>
+              <h1 className="text-2xl font-semibold mb-2">Get Started</h1>
               <p className="text-sm text-muted-foreground mb-6">Sign in to your account</p>
 
               <form className="space-y-4">
@@ -76,7 +76,7 @@ export default function LoginPage() {
           </div>
 
           {/* Disclaimer pinned to bottom of left panel */}
-          <div className="w-full max-w-sm mx-auto pt-6 text-center text-xs text-muted-foreground">
+          <div className="w-full max-w-sm mx-auto pt-35 text-center text-xs text-muted-foreground">
             By continuing, you agree to the{' '}
             <Link href="/terms" className="underline text-foreground">Terms of Service</Link>
             {' '}and{' '}
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
         {/* Right: Testimonials (70%)) - white background for content to stand out */}
         <section className="bg-white text-slate-900 p-8 md:p-12 flex items-center justify-center min-h-[calc(100dvh-120px)]">
-          <div className="w-full max-w-3xl space-y-6 mx-auto">
+          <div className="w-full max-w-3xl space-y-6 mx-auto -mt-27 md:-mt-52">
             <h2 className="text-xl font-semibold">What our customers say</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
