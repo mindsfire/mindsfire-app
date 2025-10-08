@@ -90,7 +90,7 @@ function Topbar() {
       <div className="w-full px-[60px] grid h-[120px] items-center grid-cols-[160px_1fr_160px]">
         {/* Left: Logo (wordmark) */}
         <div className="flex items-center">
-          <Link aria-label="Homepage" href="/dashboard" className="relative flex w-fit items-center overflow-hidden">
+          <Link aria-label="Homepage" href="/overview" className="relative flex w-fit items-center overflow-hidden">
             <Image
               src="/mindsfire-black-logo.svg"
               alt="Mindsfire"
