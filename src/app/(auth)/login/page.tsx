@@ -77,7 +77,7 @@ function LoginInner() {
         <section className="bg-background text-foreground flex flex-col p-6 md:p-10 min-h-[calc(100dvh-120px)]">
           <div className="w-full max-w-sm mx-auto flex-1 flex items-center">
             <div className="w-full">
-              <h1 className="text-2xl font-semibold mb-2">Get Started</h1>
+              <h1 className="text-2xl font-semibold mb-2">Welcome back</h1>
               <p className="text-sm text-muted-foreground mb-6">Sign in to your account</p>
 
               {error && (
