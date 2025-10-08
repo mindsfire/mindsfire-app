@@ -52,31 +52,35 @@ export default function PlansInlineSlider({
 
   return (
     <div className="space-y-2 group relative">
-      {/* Overlay chevrons: appear on hover, centered vertically */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-10 opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="relative h-full">
-          <div className="absolute -left-5 top-1/2 -translate-y-1/2 pl-1">
-            <button
-              aria-label="Previous plans"
-              onClick={prev}
-              disabled={index === 0}
-              className="pointer-events-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur text-muted-foreground hover:bg-accent/10 hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="absolute -right-4 top-1/2 -translate-y-1/2 pr-1">
-            <button
-              aria-label="Next plans"
-              onClick={next}
-              disabled={index === max}
-              className="pointer-events-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur text-muted-foreground hover:bg-accent/10 hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+      {/* Overlay chevrons: appear on hover, centered vertically; hidden when not usable */}
+      {max > 0 && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-10 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="relative h-full">
+            {index > 0 && (
+              <div className="absolute -left-5 top-1/2 -translate-y-1/2 pl-1">
+                <button
+                  aria-label="Previous plans"
+                  onClick={prev}
+                  className="pointer-events-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            {index < max && (
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 pr-1">
+                <button
+                  aria-label="Next plans"
+                  onClick={next}
+                  className="pointer-events-auto h-8 w-8 inline-flex items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         {visible.map((p) => (
