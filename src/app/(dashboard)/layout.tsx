@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -57,12 +58,17 @@ function Topbar() {
   return (
     <header className="h-[120px] bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="w-full px-[60px] grid h-[120px] items-center grid-cols-[160px_1fr_160px]">
-        {/* Left: Logo (tucked) */}
+        {/* Left: Logo (wordmark) */}
         <div className="flex items-center">
           <Link aria-label="Homepage" href="/dashboard" className="relative flex w-fit items-center overflow-hidden">
-            <div className="pointer-events-none relative size-6 lg:size-8">
-              <div className="absolute inset-0 rounded-sm bg-primary/80" />
-            </div>
+            <Image
+              src="/mindsfire-black-logo.svg"
+              alt="Mindsfire"
+              width={1478}
+              height={184}
+              priority
+              className="w-[160px] h-auto"
+            />
           </Link>
         </div>
 
