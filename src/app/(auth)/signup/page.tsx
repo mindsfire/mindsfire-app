@@ -47,6 +47,7 @@ export default function SignupPage() {
                 name="name"
                 type="text"
                 autoComplete="name"
+                placeholder="Jane Smith"
                 required
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
@@ -58,6 +59,7 @@ export default function SignupPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                placeholder="Your email address"
                 required
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
@@ -69,6 +71,7 @@ export default function SignupPage() {
                 name="password"
                 type="password"
                 autoComplete="new-password"
+                placeholder="*****"
                 required
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
@@ -80,6 +83,7 @@ export default function SignupPage() {
                 name="confirm"
                 type="password"
                 autoComplete="new-password"
+                placeholder="*****"
                 required
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />

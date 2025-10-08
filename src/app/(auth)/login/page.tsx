@@ -45,6 +45,7 @@ export default function LoginPage() {
                     name="email"
                     type="email"
                     autoComplete="email"
+                    placeholder="Your email address"
                     required
                     className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
                   />
@@ -59,6 +60,7 @@ export default function LoginPage() {
                     name="password"
                     type="password"
                     autoComplete="current-password"
+                    placeholder="*****"
                     required
                     className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
                   />
