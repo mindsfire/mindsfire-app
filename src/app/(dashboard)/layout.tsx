@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import { Gauge, Settings, Puzzle, UsersRound } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { Gauge, Settings, Puzzle, UsersRound, LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 const nav = [
   { href: "/overview", label: "Overview", icon: Gauge },
@@ -55,6 +55,36 @@ function Sidebar() {
 }
 
 function Topbar() {
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profile, setProfile] = useState<{ name?: string; email?: string }>({});
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Fetch user info for display
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      setProfile({
+        name: (u?.user_metadata?.full_name as string) || undefined,
+        email: u?.email || undefined,
+      });
+    });
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setMenuOpen(false);
+    router.replace("/login");
+  };
+
   return (
     <header className="h-[120px] bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="w-full px-[60px] grid h-[120px] items-center grid-cols-[160px_1fr_160px]">
@@ -78,12 +108,33 @@ function Topbar() {
         </div>
 
         {/* Right: Avatar (tucked) */}
-        <div className="flex items-center justify-end">
-          <button aria-label="User menu" className="flex h-12 w-12 items-center justify-center rounded-full outline-none focus:outline-none">
+        <div ref={menuRef} className="relative flex items-center justify-end">
+          <button
+            aria-label="User menu"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-12 w-12 items-center justify-center rounded-full outline-none focus:outline-none"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
-              <span className="text-sm font-medium">SP</span>
+              <span className="text-sm font-medium">{(profile.name?.[0] ?? "S").toUpperCase()}</span>
             </div>
           </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-12 w-64 rounded-lg border border-border bg-card text-card-foreground shadow-lg p-3">
+              <div className="pb-3 mb-3 border-b border-border">
+                <div className="text-sm font-semibold truncate">{profile.name ?? "Account"}</div>
+                {profile.email && (
+                  <div className="text-xs text-muted-foreground truncate">{profile.email}</div>
+                )}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between text-left text-sm rounded-md px-2 py-2 hover:bg-muted/50"
+              >
+                <span>Log Out</span>
+                <LogOut className="size-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
