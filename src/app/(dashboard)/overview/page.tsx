@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { ArrowUpCircle } from "lucide-react";
+import PlansInlineSlider from "./plans-inline-slider";
 
 type Plan = {
   id: string;
@@ -28,35 +29,8 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Simple plans row like Cursor: title, short description, CTA */}
-      <div className="space-y-2">
-        <div className="grid gap-4 md:grid-cols-3">
-          {three.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-6 h-full">
-              <div className="flex h-full flex-col justify-between">
-                <div className="flex flex-col gap-0.5">
-                  <div className="text-base font-medium">{p.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {p.features?.description ?? "—"}
-                  </div>
-                </div>
-                <button className="group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent hover:bg-accent/40 w-fit">
-                  {p.name !== "Lite" && (
-                    <ArrowUpCircle className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground/80" />
-                  )}
-                  <span>
-                    {p.name === "Lite"
-                      ? "Start Lite Now"
-                      : p.name === "Starter"
-                      ? "Upgrade to Starter"
-                      : "Upgrade to Pro"}
-                  </span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Plans slider with tiny chevron control; preserves 3-card grid */}
+      <PlansInlineSlider plans={plans as Plan[]} initialOrder={["Lite","Starter","Essential"]} />
     </div>
   );
 }
