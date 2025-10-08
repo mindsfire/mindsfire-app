@@ -2,8 +2,37 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const form = e.currentTarget as HTMLFormElement;
+      const formData = new FormData(form);
+      const email = String(formData.get("email") || "").trim();
+      const password = String(formData.get("password") || "");
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      router.push("/overview");
+    } catch (err: any) {
+      setError(err?.message ?? "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <div className="min-h-dvh relative">
       {/* Top header with logo (same placement as dashboard) */}
@@ -37,7 +66,13 @@ export default function LoginPage() {
               <h1 className="text-2xl font-semibold mb-2">Get Started</h1>
               <p className="text-sm text-muted-foreground mb-6">Sign in to your account</p>
 
-              <form className="space-y-4">
+              {error && (
+                <div className="mb-4 text-sm text-red-600" role="alert">
+                  {error}
+                </div>
+              )}
+
+              <form className="space-y-4" onSubmit={handleLogin}>
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium">Email</label>
                   <input
@@ -47,6 +82,7 @@ export default function LoginPage() {
                     autoComplete="email"
                     placeholder="Your email address"
                     required
+                    disabled={loading}
                     className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
                   />
                 </div>
@@ -62,11 +98,12 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     placeholder="*****"
                     required
+                    disabled={loading}
                     className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
                   />
                 </div>
-                <button type="submit" className="w-full h-10 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition">
-                  Sign in
+                <button type="submit" disabled={loading} className="w-full h-10 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                  {loading ? "Signing in..." : "Sign in"}
                 </button>
               </form>
 
