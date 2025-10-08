@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -40,8 +40,9 @@ export default function LoginPage() {
       }
       const next = searchParams.get("redirect") || "/overview";
       router.replace(next);
-    } catch (err: any) {
-      setError(err?.message ?? "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,7 @@ export default function LoginPage() {
               </form>
 
               <p className="mt-6 text-sm text-muted-foreground">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link href="/signup" className="font-medium text-foreground hover:underline">Sign Up Now</Link>
               </p>
             </div>
@@ -142,19 +143,19 @@ export default function LoginPage() {
             <h2 className="text-xl font-semibold">What our customers say</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-sm leading-relaxed">"The team handled research and coordination flawlessly. Massive time saver."</p>
+                <p className="text-sm leading-relaxed">&quot;The team handled research and coordination flawlessly. Massive time saver.&quot;</p>
                 <div className="mt-3 text-xs text-slate-500">— Founder, SaaS</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-sm leading-relaxed">"Great communication and on‑time delivery. Highly recommend."</p>
+                <p className="text-sm leading-relaxed">&quot;Great communication and on‑time delivery. Highly recommend.&quot;</p>
                 <div className="mt-3 text-xs text-slate-500">— Ops Lead, E‑commerce</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-sm leading-relaxed">"Felt like an extension of our in‑house team."</p>
+                <p className="text-sm leading-relaxed">&quot;Felt like an extension of our in‑house team.&quot;</p>
                 <div className="mt-3 text-xs text-slate-500">— Director, Consulting</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-sm leading-relaxed">"We scaled operations without scaling cost."</p>
+                <p className="text-sm leading-relaxed">&quot;We scaled operations without scaling cost.&quot;</p>
                 <div className="mt-3 text-xs text-slate-500">— COO, Marketplace</div>
               </div>
             </div>
@@ -162,5 +163,13 @@ export default function LoginPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }
