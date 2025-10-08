@@ -40,7 +40,7 @@ export default async function OverviewPage() {
                     {p.features?.description ?? "—"}
                   </div>
                 </div>
-                <button className="group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md border border-border px-2 py-1 text-sm hover:bg-accent hover:text-accent-foreground w-fit">
+                <button className="group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent hover:bg-accent/40 w-fit">
                   {p.name !== "Lite" && (
                     <ArrowUpCircle className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground/80" />
                   )}
