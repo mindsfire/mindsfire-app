@@ -114,7 +114,7 @@ function Topbar() {
             onClick={() => setMenuOpen((v) => !v)}
             className="flex h-12 w-12 items-center justify-center rounded-full outline-none focus:outline-none"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
               <span className="text-sm font-medium">{(profile.name?.[0] ?? "S").toUpperCase()}</span>
             </div>
           </button>
