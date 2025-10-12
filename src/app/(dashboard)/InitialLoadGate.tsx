@@ -32,10 +32,10 @@ export default function InitialLoadGate() {
     };
 
     const cleanupTimers = new Set<number>();
-    const onCriticalReady = () => finish();
+    const onCriticalReady: EventListener = () => finish();
 
     // Listen for app-level signal when critical elements are ready
-    window.addEventListener("app:critical-ready", onCriticalReady, { once: true } as any);
+    window.addEventListener("app:critical-ready", onCriticalReady, { once: true });
 
     // TTL fallback so we don't block indefinitely
     const ttl = window.setTimeout(() => finish(), TTL_MS);
@@ -44,7 +44,7 @@ export default function InitialLoadGate() {
     return () => {
       cleanupTimers.forEach((id) => clearTimeout(id));
       cleanupTimers.clear();
-      window.removeEventListener("app:critical-ready", onCriticalReady as any);
+      window.removeEventListener("app:critical-ready", onCriticalReady);
       document.documentElement.style.overflow = prevOverflow;
       removeSSR();
     };

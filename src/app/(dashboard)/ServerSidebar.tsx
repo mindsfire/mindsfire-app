@@ -5,6 +5,13 @@ function Divider() {
   return <div className="mx-2 h-px bg-border" />;
 }
 
+type PlanRel = { name: string };
+type Subscription = {
+  status: string;
+  current_period_end: string | null;
+  plan?: PlanRel | PlanRel[] | null;
+};
+
 export default async function ServerSidebar() {
   const supabase = await supabaseServer();
   const { data: userData } = await supabase.auth.getUser();
@@ -23,8 +30,11 @@ export default async function ServerSidebar() {
     .eq("customer_id", user.id)
     .in("status", ["trialing", "active"]);
 
-  const plan = (subs || [])
-    .sort((a: any, b: any) => (new Date(b.current_period_end || 0).getTime() - new Date(a.current_period_end || 0).getTime()))[0]?.plan?.name || "No plan";
+  const subList: Subscription[] = (subs ?? []) as unknown as Subscription[];
+  const latest = subList
+    .sort((a, b) => (new Date(b.current_period_end || 0).getTime() - new Date(a.current_period_end || 0).getTime()))[0];
+  const planRel = latest?.plan;
+  const plan = (Array.isArray(planRel) ? planRel[0]?.name : planRel?.name) || "No plan";
 
   const email = prof?.email || user.email || "";
   const meta = (user?.user_metadata ?? {}) as Record<string, unknown> & { first_name?: string; last_name?: string; full_name?: string };
