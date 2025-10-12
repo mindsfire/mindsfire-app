@@ -30,6 +30,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/mindsfire-favicon.png" }],
   },
   manifest: "/site.webmanifest",
+};
+
+export const viewport = {
   themeColor: "#0a0c10",
 };
 
