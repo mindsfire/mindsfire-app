@@ -4,12 +4,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Gauge, Settings, Puzzle, UsersRound, LogOut } from "lucide-react";
+import { Gauge, Settings, Puzzle, UsersRound, LogOut, LifeBuoy, ListChecks, BarChart3, ReceiptText, MessageCircle, Gift } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 const nav = [
   { href: "/overview", label: "Overview", icon: Gauge },
   { href: "/settings", label: "Settings", icon: Settings },
+  // Customer sections
+  { href: "/assistance", label: "Assistance", icon: LifeBuoy },
+  { href: "/requests", label: "Requests", icon: ListChecks },
+  { href: "/usage", label: "Usage", icon: BarChart3 },
+  { href: "/billing", label: "Billing & Invoices", icon: ReceiptText },
+  { href: "/contact", label: "Contact Us", icon: MessageCircle },
+  { href: "/referrals", label: "Referrals", icon: Gift },
+  // Admin-only
   { href: "/integrations", label: "Integrations", icon: Puzzle },
   { href: "/users", label: "Users", icon: UsersRound },
 ] as const;
@@ -19,6 +27,7 @@ function Sidebar() {
   const [planLabel, setPlanLabel] = useState<string>("No plan");
   const [displayName, setDisplayName] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
+  const [role, setRole] = useState<string>("customer");
 
   useEffect(() => {
     let mounted = true;
@@ -30,7 +39,7 @@ function Sidebar() {
       // Resolve display name: profiles.name → user_metadata.first_name/last_name/full_name → email prefix
       const { data: prof } = await supabase
         .from("profiles")
-        .select("first_name, last_name, name, email")
+        .select("first_name, last_name, name, email, role")
         .eq("id", userId)
         .maybeSingle();
       const meta = (user?.user_metadata ?? {}) as Record<string, unknown> & {
@@ -41,7 +50,10 @@ function Sidebar() {
         || prof?.name
         || ([meta.first_name, meta.last_name].filter(Boolean).join(" ") || meta.full_name)
         || emailPrefix;
-      if (mounted) setDisplayName(resolvedName);
+      if (mounted) {
+        setDisplayName(resolvedName);
+        if (prof?.role) setRole(prof.role);
+      }
 
       const { data } = await supabase
         .from("subscriptions")
@@ -77,32 +89,151 @@ function Sidebar() {
         )}
       </div>
       <nav className="px-0 pb-4">
-        <ul className="space-y-1">
-          {nav.map((item) => {
-            const active = pathname === item.href || pathname?.startsWith(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={[
-                    "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
-                    active
-                      ? "bg-secondary text-secondary-foreground"
-                      : "hover:bg-secondary hover:text-[#0a0c10]",
-                  ].join(" ")}
-                >
-                  <item.icon className={[
-                    "size-4 [stroke-width:2]",
-                    active
-                      ? "text-secondary-foreground [stroke-width:2.5]"
-                      : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
-                  ].join(" ")} />
-                  <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {role === 'admin' ? (
+          <ul className="space-y-1">
+            {nav.map((item) => {
+              const active = pathname === item.href || pathname?.startsWith(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={[
+                      "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
+                      active
+                        ? "bg-secondary text-secondary-foreground"
+                        : "hover:bg-secondary hover:text-[#0a0c10]",
+                    ].join(" ")}
+                  >
+                    <item.icon className={[
+                      "size-4 [stroke-width:2]",
+                      active
+                        ? "text-secondary-foreground [stroke-width:2.5]"
+                        : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
+                    ].join(" ")} />
+                    <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="space-y-2">
+            {/* Group 1: Overview, Settings */}
+            <ul className="space-y-1">
+              {nav.filter((i) => i.label === 'Overview' || i.label === 'Settings').map((item) => {
+                const active = pathname === item.href || pathname?.startsWith(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={[
+                        "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
+                        active
+                          ? "bg-secondary text-secondary-foreground"
+                          : "hover:bg-secondary hover:text-[#0a0c10]",
+                      ].join(" ")}
+                    >
+                      <item.icon className={[
+                        "size-4 [stroke-width:2]",
+                        active
+                          ? "text-secondary-foreground [stroke-width:2.5]"
+                          : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
+                      ].join(" ")} />
+                      <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mx-2 h-px bg-border" />
+
+            {/* Group 2: Assistance, Requests */}
+            <ul className="space-y-1">
+              {nav.filter((i) => i.label === 'Assistance' || i.label === 'Requests').map((item) => {
+                const active = pathname === item.href || pathname?.startsWith(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={[
+                        "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
+                        active
+                          ? "bg-secondary text-secondary-foreground"
+                          : "hover:bg-secondary hover:text-[#0a0c10]",
+                      ].join(" ")}
+                    >
+                      <item.icon className={[
+                        "size-4 [stroke-width:2]",
+                        active
+                          ? "text-secondary-foreground [stroke-width:2.5]"
+                          : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
+                      ].join(" ")} />
+                      <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mx-2 h-px bg-border" />
+
+            {/* Group 3: Usage, Billing & Invoices */}
+            <ul className="space-y-1">
+              {nav.filter((i) => i.label === 'Usage' || i.label === 'Billing & Invoices').map((item) => {
+                const active = pathname === item.href || pathname?.startsWith(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={[
+                        "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
+                        active
+                          ? "bg-secondary text-secondary-foreground"
+                          : "hover:bg-secondary hover:text-[#0a0c10]",
+                      ].join(" ")}
+                    >
+                      <item.icon className={[
+                        "size-4 [stroke-width:2]",
+                        active
+                          ? "text-secondary-foreground [stroke-width:2.5]"
+                          : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
+                      ].join(" ")} />
+                      <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mx-2 h-px bg-border" />
+
+            {/* Group 4: Contact Us, Referrals */}
+            <ul className="space-y-1">
+              {nav.filter((i) => i.label === 'Contact Us' || i.label === 'Referrals').map((item) => {
+                const active = pathname === item.href || pathname?.startsWith(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={[
+                        "group flex h-9 items-center gap-2 rounded-lg px-2 text-sm transition-all",
+                        active
+                          ? "bg-secondary text-secondary-foreground"
+                          : "hover:bg-secondary hover:text-[#0a0c10]",
+                      ].join(" ")}
+                    >
+                      <item.icon className={[
+                        "size-4 [stroke-width:2]",
+                        active
+                          ? "text-secondary-foreground [stroke-width:2.5]"
+                          : "text-muted-foreground group-hover:text-[#0a0c10] group-hover:[stroke-width:2.5]",
+                      ].join(" ")} />
+                      <span className={active ? "font-semibold" : "group-hover:font-semibold"}>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </nav>
     </aside>
   );
