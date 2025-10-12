@@ -21,10 +21,13 @@ export const metadata: Metadata = {
   description: "Mindsfire App",
   icons: {
     icon: [
-      { url: "/mindsfire-black-logo.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", rel: "icon" },
+      // Use existing ICO in public/
+      { url: "/mindsifire-favicon1.ico", rel: "icon" },
+      // Optional: also expose PNG for some contexts
+      { url: "/mindsfire-favicon.png", type: "image/png" },
     ],
-    apple: [{ url: "/mindsfire-black-logo.svg" }],
+    // Prefer PNG for Apple touch icon; ensure the PNG is square
+    apple: [{ url: "/mindsfire-favicon.png" }],
   },
   manifest: "/site.webmanifest",
   themeColor: "#0a0c10",
