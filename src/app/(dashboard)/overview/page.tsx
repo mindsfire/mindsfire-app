@@ -1,43 +1,27 @@
-import { createClient } from "@supabase/supabase-js";
-import PlansInlineSlider from "./plans-inline-slider";
+import { Suspense } from "react";
+import PlansSection from "./PlansSection";
 
-type Features = {
-  description?: string;
-  hourly_rate?: number;
-  additional_hourly_rate?: number;
-  rollover_percent?: number;
-  billing?: string;
-  most_popular?: boolean;
-  dedicated_or_fractional?: boolean;
-  custom_tasks?: boolean;
-  technical_support?: boolean;
-  planning_and_scheduling?: boolean;
-  sort_index?: number;
-};
-
-type Plan = {
-  id: string;
-  name: string;
-  monthly_price: number | null;
-  quota_hours: number | null;
-  features: Features;
-};
-
-export default async function OverviewPage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+function PlansSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[0,1,2].map((i) => (
+        <div key={i} className="rounded-xl border border-border p-4">
+          <div className="h-4 w-24 bg-muted animate-pulse rounded mb-3" />
+          <div className="h-6 w-32 bg-muted animate-pulse rounded mb-4" />
+          <div className="h-20 w-full bg-muted animate-pulse rounded" />
+        </div>
+      ))}
+    </div>
   );
+}
 
-  const { data: plans = [] } = await supabase
-    .from("plans")
-    .select("id,name,monthly_price,quota_hours,features")
-    .order("monthly_price", { ascending: true, nullsFirst: true });
-
+export default function OverviewPage() {
   return (
     <div className="space-y-6">
-      {/* Plans slider with tiny chevron control; preserves 3-card grid */}
-      <PlansInlineSlider plans={plans as Plan[]} initialOrder={["Lite","Starter","Essential"]} />
+      <Suspense fallback={<PlansSkeleton />}> 
+        <PlansSection />
+      </Suspense>
+      {/** Add more sections below similarly with their own Suspense boundaries */}
     </div>
   );
 }
