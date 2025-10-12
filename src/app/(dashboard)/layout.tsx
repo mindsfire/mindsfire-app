@@ -111,17 +111,34 @@ function Sidebar() {
 function Topbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<{ name?: string; email?: string }>({});
+  const [profile, setProfile] = useState<{ name?: string; email?: string; first_name?: string; last_name?: string }>({});
   const menuRef = useRef<HTMLDivElement>(null);
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
 
   useEffect(() => {
-    // Fetch user info for display
-    supabase.auth.getUser().then(({ data }) => {
+    // Fetch user and profile details for initials
+    supabase.auth.getUser().then(async ({ data }) => {
       const u = data.user;
-      setProfile({
+      const base = {
         name: (u?.user_metadata?.full_name as string) || undefined,
         email: u?.email || undefined,
-      });
+      } as { name?: string; email?: string; first_name?: string; last_name?: string };
+      if (u?.id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, name, email")
+          .eq("id", u.id)
+          .maybeSingle();
+        setProfile({
+          name: prof?.name ?? base.name,
+          email: prof?.email ?? base.email,
+          first_name: prof?.first_name ?? undefined,
+          last_name: prof?.last_name ?? undefined,
+        });
+      } else {
+        setProfile(base);
+      }
+      setAvatarLoaded(true);
     });
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -138,6 +155,26 @@ function Topbar() {
     setMenuOpen(false);
     router.replace("/login");
   };
+
+  // Compute two-letter initials
+  const initials = (() => {
+    const fn = profile.first_name?.trim();
+    const ln = profile.last_name?.trim();
+    if (fn || ln) return `${fn?.[0] ?? ''}${ln?.[0] ?? ''}`.toUpperCase() || '';
+    const n = (profile.name ?? '').trim();
+    if (n) {
+      const parts = n.split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return n.slice(0, 2).toUpperCase();
+    }
+    const ep = (profile.email ?? '').split('@')[0] ?? '';
+    if (ep) {
+      const parts = ep.replace(/[._-]+/g, ' ').split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return ep.slice(0, 2).toUpperCase();
+    }
+    return '';
+  })();
 
   return (
     <header className="relative z-50 h-[120px] bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -169,7 +206,7 @@ function Topbar() {
             className="flex h-12 w-12 items-center justify-center rounded-full outline-none focus:outline-none"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-              <span className="text-sm font-medium">{(profile.name?.[0] ?? "S").toUpperCase()}</span>
+              <span className="text-[11px] font-semibold tracking-wide">{avatarLoaded ? initials : ''}</span>
             </div>
           </button>
           {menuOpen && (
