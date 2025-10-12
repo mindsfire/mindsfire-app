@@ -38,6 +38,8 @@ create table if not exists public.profiles (
   id uuid primary key,                 -- same as auth.users.id
   email text not null unique,
   name text,
+  first_name text,
+  last_name text,
   role text not null default 'customer',  -- 'customer' | 'admin'
   plan text,                            -- optional display plan tag
   created_at timestamp with time zone not null default now()
@@ -165,12 +167,24 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_first text := null;
+  v_last  text := null;
+  v_full  text := null;
+  v_name  text := null;
 begin
-  insert into public.profiles (id, email, name, role)
+  v_first := new.raw_user_meta_data->>'first_name';
+  v_last  := new.raw_user_meta_data->>'last_name';
+  v_full  := new.raw_user_meta_data->>'full_name';
+  v_name  := coalesce(v_full, nullif(trim(concat_ws(' ', v_first, v_last)), ''), split_part(new.email,'@',1));
+
+  insert into public.profiles (id, email, name, first_name, last_name, role)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email,'@',1)),
+    v_name,
+    nullif(v_first, ''),
+    nullif(v_last, ''),
     'customer'
   )
   on conflict (id) do nothing;

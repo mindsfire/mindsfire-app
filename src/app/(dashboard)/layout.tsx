@@ -16,11 +16,65 @@ const nav = [
 
 function Sidebar() {
   const pathname = usePathname();
+  const [planLabel, setPlanLabel] = useState<string>("No plan");
+  const [displayName, setDisplayName] = useState<string>("");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      const userId = user?.id;
+      if (!userId) return;
+      // Resolve display name: profiles.name → user_metadata.first_name/last_name/full_name → email prefix
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, name, email")
+        .eq("id", userId)
+        .maybeSingle();
+      const meta = (user?.user_metadata ?? {}) as Record<string, unknown> & {
+        first_name?: string; last_name?: string; full_name?: string;
+      };
+      const emailPrefix = (prof?.email || user?.email || "").split("@")[0] || "Account";
+      const resolvedName = ([prof?.first_name, prof?.last_name].filter(Boolean).join(" "))
+        || prof?.name
+        || ([meta.first_name, meta.last_name].filter(Boolean).join(" ") || meta.full_name)
+        || emailPrefix;
+      if (mounted) setDisplayName(resolvedName);
+
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("status, current_period_end, plan:plan_id(name)")
+        .eq("customer_id", userId)
+        .in("status", ["trialing", "active"]) as unknown as {
+          data: Array<{ status: string; current_period_end: string | null; plan: { name: string } | null }>
+        };
+      const sub = (data || [])
+        .sort((a, b) => (new Date(b.current_period_end || 0).getTime() - new Date(a.current_period_end || 0).getTime()))[0];
+      if (!mounted) return;
+      setPlanLabel(sub?.plan?.name ?? "No plan");
+      setLoaded(true);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <aside className="sticky top-0 h-[calc(100dvh-120px)] bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
       <div className="pl-2 px-0 py-4 space-y-1 h-[64px]">
-        <div className="text-sm font-semibold leading-tight truncate">Sandesh Parjanya</div>
-        <div className="text-xs text-muted-foreground leading-tight">Free Plan</div>
+        {loaded ? (
+          <>
+            <div className="text-sm font-semibold leading-tight truncate">{displayName}</div>
+            <div className="text-xs text-muted-foreground leading-tight">{planLabel}</div>
+          </>
+        ) : (
+          <>
+            <div className="h-4 w-28 rounded bg-muted/40 animate-pulse" />
+            <div className="h-3 w-16 rounded bg-muted/30 animate-pulse" />
+          </>
+        )}
       </div>
       <nav className="px-0 pb-4">
         <ul className="space-y-1">
