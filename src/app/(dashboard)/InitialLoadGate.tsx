@@ -18,8 +18,8 @@ export default function InitialLoadGate() {
       document.documentElement.style.overflow = "hidden";
     }
     const start = Date.now();
-    const MIN_VISIBLE_MS = 300; // avoid flashing
-    const TTL_MS = 2500; // maximum time to keep overlay if no signal
+    const MIN_VISIBLE_MS = 0; // remove minimum to align with browser reloads
+    const TTL_MS = 1200; // shorter fallback
 
     let done = false;
     const finish = () => {
@@ -36,6 +36,8 @@ export default function InitialLoadGate() {
 
     // Listen for app-level signal when critical elements are ready
     window.addEventListener("app:critical-ready", onCriticalReady, { once: true });
+    // Also finish when the browser load event fires (all resources fetched)
+    window.addEventListener("load", onCriticalReady, { once: true });
 
     // TTL fallback so we don't block indefinitely
     const ttl = window.setTimeout(() => finish(), TTL_MS);
@@ -45,6 +47,7 @@ export default function InitialLoadGate() {
       cleanupTimers.forEach((id) => clearTimeout(id));
       cleanupTimers.clear();
       window.removeEventListener("app:critical-ready", onCriticalReady);
+      window.removeEventListener("load", onCriticalReady);
       document.documentElement.style.overflow = prevOverflow;
       removeSSR();
     };
@@ -53,7 +56,7 @@ export default function InitialLoadGate() {
   if (!show || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[2147483647] grid place-items-center bg-white dark:bg-black pointer-events-auto">
+    <div className="fixed inset-0 z-[2147483647] grid place-items-center bg-[#f0f8ff] pointer-events-auto isolate">
       <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
         <Loader2 className="h-8 w-8 text-[hsl(var(--foreground))] animate-spin" aria-hidden />
         <p className="text-sm text-muted-foreground">Loading Dashboard…</p>
