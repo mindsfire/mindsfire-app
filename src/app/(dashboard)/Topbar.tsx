@@ -51,8 +51,10 @@ export default function Topbar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
     setMenuOpen(false);
     router.replace("/login");
+    router.refresh();
   };
 
   // Compute two-letter initials
