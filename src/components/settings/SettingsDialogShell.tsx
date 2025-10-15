@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { XIcon } from "lucide-react";
+import { Loader2, XIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ type SettingsDialogShellProps = {
   onPrimaryAction?: () => void;
   showCloseButton?: boolean;
   titleClassName?: string;
+  primaryLoading?: boolean;
 };
 
 export default function SettingsDialogShell({
@@ -35,6 +36,7 @@ export default function SettingsDialogShell({
   onPrimaryAction,
   showCloseButton = true,
   titleClassName,
+  primaryLoading = false,
 }: SettingsDialogShellProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,12 +70,15 @@ export default function SettingsDialogShell({
         <div>{children}</div>
 
         <DialogFooter className="pt-2">
-          <Button
-            onClick={onPrimaryAction}
-            size="sm"
-            className="px-4"
-          >
-            {primaryActionLabel}
+          <Button onClick={onPrimaryAction} size="sm" className="px-4" disabled={primaryLoading}>
+            {primaryLoading ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {primaryActionLabel}
+              </>
+            ) : (
+              primaryActionLabel
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

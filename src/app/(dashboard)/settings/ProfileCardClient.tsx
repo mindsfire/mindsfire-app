@@ -142,6 +142,7 @@ export default function ProfileCardClient() {
         title="Edit Your Profile"
         titleClassName="text-xl leading-6"
         primaryActionLabel={saving ? "Saving..." : "Done"}
+        primaryLoading={saving}
         onPrimaryAction={handleSave}
       >
         <div className="grid gap-4">

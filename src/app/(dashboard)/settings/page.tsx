@@ -1,4 +1,5 @@
 import ProfileCardClient from "./ProfileCardClient";
+import ActiveSessionsCardClient from "./ActiveSessionsCardClient";
 
 export default function SettingsPage() {
   return (
@@ -12,6 +13,15 @@ export default function SettingsPage() {
           <a href="/help/settings/profile" className="text-sm text-muted-foreground hover:underline">Learn more</a>
         </div>
         <ProfileCardClient />
+      </section>
+
+      <section className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <div>
+            <h2 className="text-xs font-medium">Active Sessions</h2>
+          </div>
+        </div>
+        <ActiveSessionsCardClient />
       </section>
     </div>
   )
