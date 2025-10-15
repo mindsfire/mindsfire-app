@@ -1,0 +1,44 @@
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* 8px */
+  height: 40px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  border-radius: 0.375rem; /* rounded-md */
+  padding-left: 0.25rem; /* slight spacing for country */
+}
+
+/* Country selector ~4ch width */
+.PhoneInputCountry {
+  flex: 0 0 auto;
+}
+.PhoneInputCountrySelect {
+  width: 4.5ch;
+  min-width: 4.5ch;
+}
+
+/* Add space between flag and caret */
+.PhoneInputCountryIcon {
+  margin-right: 0.25rem; /* 4px */
+}
+.PhoneInputCountrySelectArrow {
+  margin-left: 0.375rem; /* 6px */
+}
+
+/* Number input takes remaining width with comfy padding */
+.PhoneInputInput {
+  flex: 1 1 auto;
+  height: 38px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  padding: 0 0.75rem; /* px-3 */
+}
+
+/* Focus ring to match app */
+.PhoneInput:focus-within {
+  box-shadow: 0 0 0 2px var(--ring);
+}

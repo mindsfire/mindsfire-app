@@ -45,6 +45,13 @@ create table if not exists public.profiles (
   created_at timestamp with time zone not null default now()
 );
 
+-- Add contact/location columns to profiles (idempotent)
+alter table public.profiles add column if not exists phone_e164 text;
+alter table public.profiles add column if not exists country_code char(2);
+alter table public.profiles add column if not exists region text;
+alter table public.profiles add column if not exists phone_verified boolean not null default false;
+alter table public.profiles add column if not exists updated_at timestamp with time zone not null default now();
+
 -- Now that profiles exists, create is_admin()
 create or replace function is_admin()
 returns boolean
