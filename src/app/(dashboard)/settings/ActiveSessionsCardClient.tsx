@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Globe, Monitor, Smartphone } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getSessionKey } from "@/lib/sessionKey";
@@ -14,15 +14,15 @@ type DbSession = {
   revoked_at: string | null;
 };
 
-export default function ActiveSessionsCardClient() {
-  const [sessions, setSessions] = useState<DbSession[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ActiveSessionsCardClient({ initialSessions = [] as DbSession[] }: { initialSessions?: DbSession[] }) {
+  const [sessions, setSessions] = useState<DbSession[]>(initialSessions);
+  const [loading, setLoading] = useState(initialSessions.length === 0);
   const [blocking, setBlocking] = useState(false);
   const myKey = useMemo(() => getSessionKey(), []);
-  const [myRowId, setMyRowId] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
+  const [, forceTick] = useReducer((x: number) => x + 1, 0);
+  const prevCountRef = useRef(initialSessions.length);
 
-  async function fetchSessionsFor(userId: string) {
+  const fetchSessionsFor = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("user_sessions")
       .select("id, session_key, label, created_at, last_seen_at, revoked_at")
@@ -30,11 +30,29 @@ export default function ActiveSessionsCardClient() {
       .order("last_seen_at", { ascending: false });
     const list = ((data ?? []) as DbSession[]).filter((r) => !r.revoked_at);
     setSessions(list);
-    const mine = list.find((r) => r.session_key === myKey);
-    if (mine?.id) setMyRowId(mine.id);
-  }
+    prevCountRef.current = list.length;
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("mf_sessions_cache", JSON.stringify(list));
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
+    // If SSR didn't provide data, try hydrating from cache to avoid skeleton
+    if (initialSessions.length === 0 && sessions.length === 0) {
+      try {
+        if (typeof window !== "undefined") {
+          const raw = window.localStorage.getItem("mf_sessions_cache");
+          if (raw) {
+            const cached = JSON.parse(raw) as DbSession[];
+            setSessions(cached);
+            prevCountRef.current = cached.length;
+            setLoading(false);
+          }
+        }
+      } catch {}
+    }
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
@@ -96,11 +114,11 @@ export default function ActiveSessionsCardClient() {
         try { revokeChan?.unsubscribe(); } catch {}
       };
     })();
-  }, [myKey]);
+  }, [myKey, fetchSessionsFor]);
 
   // Re-render relative time every 30s
   useEffect(() => {
-    const t = setInterval(() => setTick((x) => x + 1), 30000);
+    const t = setInterval(() => forceTick(), 30000);
     return () => clearInterval(t);
   }, []);
 
@@ -118,7 +136,7 @@ export default function ActiveSessionsCardClient() {
       timer = setInterval(() => { fetchSessionsFor(user.id); }, 60000);
     })();
     return () => { cleanup(); if (timer) clearInterval(timer); };
-  }, []);
+  }, [fetchSessionsFor]);
 
   async function revoke(row: DbSession) {
     try {
@@ -142,7 +160,15 @@ export default function ActiveSessionsCardClient() {
         return;
       }
 
-      setSessions((prev) => prev.filter((s) => s.id !== row.id));
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== row.id);
+        try {
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("mf_sessions_cache", JSON.stringify(next));
+          }
+        } catch {}
+        return next;
+      });
     } finally {
       setBlocking(false);
     }
@@ -179,7 +205,27 @@ export default function ActiveSessionsCardClient() {
       )}
       <div>
         {loading ? (
-          <div className="py-3 text-xs text-muted-foreground">Loading…</div>
+          <div>
+            {[0, 1, 2].map((i) => (
+              <div key={i}>
+                {i !== 0 && (
+                  <div className="mx-2 h-px bg-muted-foreground/8 dark:bg-muted-foreground/12" />
+                )}
+                <div className="flex items-start justify-between py-3">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="w-5 flex justify-center text-muted-foreground">
+                      <span className="h-4 w-4 rounded-sm bg-muted animate-pulse" />
+                    </span>
+                    <div className="flex-1">
+                      <div className="h-3 w-40 rounded bg-muted animate-pulse" />
+                      <div className="mt-2 h-2 w-28 rounded bg-muted animate-pulse" />
+                    </div>
+                  </div>
+                  <span className="h-7 w-16 rounded-md bg-muted animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : sessions.length === 0 ? (
           <div className="py-3 text-xs text-muted-foreground">No active sessions</div>
         ) : (

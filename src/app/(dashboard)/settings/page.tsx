@@ -1,5 +1,5 @@
-import ProfileCardClient from "./ProfileCardClient";
-import ActiveSessionsCardClient from "./ActiveSessionsCardClient";
+import ProfileCardServer from "./ProfileCardServer";
+import ActiveSessionsCardServer from "./ActiveSessionsCardServer";
 
 export default function SettingsPage() {
   return (
@@ -12,7 +12,7 @@ export default function SettingsPage() {
           </div>
           <a href="/help/settings/profile" className="text-sm text-muted-foreground hover:underline">Learn more</a>
         </div>
-        <ProfileCardClient />
+        <ProfileCardServer />
       </section>
 
       <section className="space-y-2">
@@ -21,7 +21,7 @@ export default function SettingsPage() {
             <h2 className="text-xs font-medium">Active Sessions</h2>
           </div>
         </div>
-        <ActiveSessionsCardClient />
+        <ActiveSessionsCardServer />
       </section>
     </div>
   )

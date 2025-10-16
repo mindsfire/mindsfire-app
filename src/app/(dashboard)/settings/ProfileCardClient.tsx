@@ -11,22 +11,32 @@ import { Select } from "@/components/ui/select";
 import "./phone-input.css";
 import { ChevronDown } from "lucide-react";
 
-export default function ProfileCardClient() {
+export default function ProfileCardClient({
+  initialPhoneE164 = null,
+  initialCountryCode = null,
+  initialRegion = null,
+}: {
+  initialPhoneE164?: string | null;
+  initialCountryCode?: string | null;
+  initialRegion?: string | null;
+}) {
   const [open, setOpen] = useState(false);
-  const [countryCode, setCountryCode] = useState<string>("");
-  const [region, setRegion] = useState<string>("");
-  const [phoneE164, setPhoneE164] = useState<string | undefined>(undefined);
-  const [phoneCountry, setPhoneCountry] = useState<string>("US");
+  const hasInitial = initialPhoneE164 !== null || initialCountryCode !== null || initialRegion !== null;
+  const [prefetching, setPrefetching] = useState(!hasInitial);
+  const [countryCode, setCountryCode] = useState<string>(initialCountryCode ?? "");
+  const [region, setRegion] = useState<string>(initialRegion ?? "");
+  const [phoneE164, setPhoneE164] = useState<string | undefined>(initialPhoneE164 ?? undefined);
+  const [phoneCountry, setPhoneCountry] = useState<string>(initialCountryCode ?? "US");
   const [syncedFromPhoneOnce, setSyncedFromPhoneOnce] = useState<boolean>(false);
-  const [displayPhone, setDisplayPhone] = useState<string>("");
+  const [displayPhone, setDisplayPhone] = useState<string>(initialPhoneE164 ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const ALLOWED = ["US", "GB", "DE", "AU", "AE", "IN"] as const;
 
   const countries = useMemo(
-    () => Country.getAllCountries().filter((c) => ALLOWED.includes(c.isoCode as any)),
-    []
+    () => Country.getAllCountries().filter((c) => (ALLOWED as readonly string[]).includes(c.isoCode)),
+    [ALLOWED]
   );
 
   const states = useMemo(
@@ -50,10 +60,14 @@ export default function ProfileCardClient() {
 
   // Prefill from Supabase
   useEffect(() => {
+    if (hasInitial) return; // SSR provided values; skip client prefetch
     (async () => {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id;
-      if (!uid) return;
+      if (!uid) {
+        setPrefetching(false);
+        return;
+      }
       const { data: prof } = await supabase
         .from("profiles")
         .select("phone_e164, country_code, region")
@@ -65,18 +79,18 @@ export default function ProfileCardClient() {
         setCountryCode(prof.country_code ?? "");
         setPhoneCountry((prof.country_code as string) || "US");
         setRegion(prof.region ?? "");
-        // If a country already exists, consider auto-sync already satisfied
         if (prof.country_code) setSyncedFromPhoneOnce(true);
       }
+      setPrefetching(false);
     })();
-  }, []);
+  }, [hasInitial]);
 
   // Reset one-time sync flag when dialog opens
   useEffect(() => {
     if (open) {
       setSyncedFromPhoneOnce(!!countryCode);
     }
-  }, [open]);
+  }, [open, countryCode]);
 
   async function handleSave() {
     setError(null);
@@ -103,8 +117,9 @@ export default function ProfileCardClient() {
       }
       setDisplayPhone(phoneE164 || "");
       setOpen(false);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to save.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to save.";
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -113,27 +128,41 @@ export default function ProfileCardClient() {
   return (
     <>
       <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="text-sm font-medium">Phone</div>
-            <div className="text-xs text-muted-foreground">{displayPhone || "Not added"}</div>
-            <div className="pt-3">
-              <div className="text-sm font-medium">Region</div>
-              <div className="text-xs text-muted-foreground">
-                {displayCountryName || region
-                  ? [region, displayCountryName].filter(Boolean).join(", ")
-                  : "Not added"}
+        {prefetching ? (
+          <div className="flex items-start justify-between">
+            <div className="space-y-1 w-full">
+              <div className="h-4 w-16 rounded bg-muted animate-pulse" />
+              <div className="h-3 w-40 rounded bg-muted animate-pulse" />
+              <div className="pt-3 space-y-2">
+                <div className="h-4 w-16 rounded bg-muted animate-pulse" />
+                <div className="h-3 w-48 rounded bg-muted animate-pulse" />
               </div>
             </div>
+            <span className="h-7 w-12 rounded-md bg-muted animate-pulse" />
           </div>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="h-7 px-3 rounded-md text-xs bg-[#f0f8ff] text-[var(--foreground)] border border-border hover:bg-[#E9F3FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer"
-          >
-            Edit
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">Phone</div>
+              <div className="text-xs text-muted-foreground">{displayPhone || "Not added"}</div>
+              <div className="pt-3">
+                <div className="text-sm font-medium">Region</div>
+                <div className="text-xs text-muted-foreground">
+                  {displayCountryName || region
+                    ? [region, displayCountryName].filter(Boolean).join(", ")
+                    : "Not added"}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="h-7 px-3 rounded-md text-xs bg-[#f0f8ff] text-[var(--foreground)] border border-border hover:bg-[#E9F3FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer"
+            >
+              Edit
+            </button>
+          </div>
+        )}
       </div>
 
       <SettingsDialogShell
@@ -153,8 +182,8 @@ export default function ProfileCardClient() {
                 key={phoneCountry}
                 value={phoneE164}
                 onChange={setPhoneE164}
-                defaultCountry={phoneCountry as any}
-                countries={ALLOWED as any}
+                defaultCountry={phoneCountry as unknown as never}
+                countries={[...ALLOWED] as unknown as never}
                 international={false}
                 onCountryChange={(c) => {
                   // On first change only, auto-sync Country to match PhoneInput

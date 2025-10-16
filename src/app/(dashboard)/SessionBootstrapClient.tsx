@@ -70,8 +70,8 @@ export default function SessionBootstrapClient() {
         // Also subscribe to a user-level broadcast channel for immediate revokes
         const bc = supabase
           .channel(`user:${user.id}`)
-          .on('broadcast', { event: 'revoke-session' }, async (payload) => {
-            const { session_key } = (payload?.payload as any) || {};
+          .on('broadcast', { event: 'revoke-session' }, async (payload: { payload?: { session_key?: string } }) => {
+            const { session_key } = payload?.payload || {};
             if (session_key && session_key === myKey) {
               await supabase.auth.signOut();
             }
