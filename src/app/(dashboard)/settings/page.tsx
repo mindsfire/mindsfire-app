@@ -1,5 +1,8 @@
+import { Suspense } from "react";
 import ProfileCardServer from "./ProfileCardServer";
 import ActiveSessionsCardServer from "./ActiveSessionsCardServer";
+import ProfileCardSkeleton from "./ProfileCardSkeleton";
+import ActiveSessionsCardSkeleton from "./ActiveSessionsCardSkeleton";
 
 export default function SettingsPage() {
   return (
@@ -12,7 +15,9 @@ export default function SettingsPage() {
           </div>
           <a href="/help/settings/profile" className="text-sm text-muted-foreground hover:underline">Learn more</a>
         </div>
-        <ProfileCardServer />
+        <Suspense fallback={<ProfileCardSkeleton />}>
+          <ProfileCardServer />
+        </Suspense>
       </section>
 
       <section className="space-y-2">
@@ -21,7 +26,9 @@ export default function SettingsPage() {
             <h2 className="text-xs font-medium">Active Sessions</h2>
           </div>
         </div>
-        <ActiveSessionsCardServer />
+        <Suspense fallback={<ActiveSessionsCardSkeleton />}>
+          <ActiveSessionsCardServer />
+        </Suspense>
       </section>
     </div>
   )
