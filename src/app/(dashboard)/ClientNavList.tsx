@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gauge, Settings, Puzzle, UsersRound, LifeBuoy, ListChecks, BarChart3, ReceiptText, MessageCircle, Gift } from "lucide-react";
+import { Gauge, Settings, Puzzle, UsersRound, LifeBuoy, ListChecks, BarChart3, ReceiptText, MessageCircle, Gift, User, SquareCheckBig } from "lucide-react";
 
 export type NavItem = {
   href: string;
   label: string;
-  iconKey: "gauge" | "settings" | "puzzle" | "users" | "life-buoy" | "list-checks" | "bar-chart" | "receipt" | "message" | "gift";
+  iconKey: "gauge" | "settings" | "puzzle" | "users" | "user" | "tasks" | "life-buoy" | "list-checks" | "bar-chart" | "receipt" | "message" | "gift";
 };
 
 export function ClientNavList({ items }: { items: NavItem[] }) {
@@ -17,6 +17,8 @@ export function ClientNavList({ items }: { items: NavItem[] }) {
     "settings": Settings,
     "puzzle": Puzzle,
     "users": UsersRound,
+    "user": User,
+    "tasks": SquareCheckBig,
     "life-buoy": LifeBuoy,
     "list-checks": ListChecks,
     "bar-chart": BarChart3,

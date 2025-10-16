@@ -51,7 +51,8 @@ export default async function ServerSidebar() {
   ];
 
   const customer: NavItem[] = [
-    { href: "/assistance", label: "Assistance", iconKey: "life-buoy" },
+    { href: "/myassistant", label: "My Assistant", iconKey: "user" },
+    { href: "/tasks", label: "Tasks", iconKey: "tasks" },
     { href: "/requests", label: "Requests", iconKey: "list-checks" },
     { href: "/usage", label: "Usage", iconKey: "bar-chart" },
     { href: "/billing", label: "Billing & Invoices", iconKey: "receipt" },
@@ -78,11 +79,9 @@ export default async function ServerSidebar() {
           <div className="space-y-2">
             <ClientNavList items={base} />
             <Divider />
-            <ClientNavList items={customer.slice(0, 2)} />
+            <ClientNavList items={customer.slice(0, 3)} />
             <Divider />
-            <ClientNavList items={customer.slice(2, 4)} />
-            <Divider />
-            <ClientNavList items={customer.slice(4)} />
+            <ClientNavList items={customer.slice(3)} />
           </div>
         )}
       </nav>
