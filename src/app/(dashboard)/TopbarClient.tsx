@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
@@ -14,7 +13,6 @@ export type TopbarClientProps = {
 };
 
 export default function TopbarClient({ initials, name, email }: TopbarClientProps) {
-  const router = useRouter();
   const { signOut } = useClerk();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

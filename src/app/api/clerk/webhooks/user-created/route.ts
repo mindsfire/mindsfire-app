@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Clerk } from "@clerk/clerk-sdk-node";
+import { clerkClient } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 
 // Secured webhook: verifies signature and sets default role = "customer" on user.created
@@ -29,19 +29,20 @@ export async function POST(req: Request) {
 
     const payload = await req.text();
     const wh = new Webhook(secret);
-    let evt: any;
+    let verified: unknown;
     try {
-      evt = wh.verify(payload, {
+      verified = wh.verify(payload, {
         "svix-id": svixId,
         "svix-timestamp": svixTimestamp,
         "svix-signature": svixSignature,
       });
-    } catch (e: any) {
+    } catch {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    const type = evt?.type as string | undefined;
-    const data = evt?.data as Record<string, any> | undefined;
+    const evt = verified as { type?: string; data?: { id?: string } };
+    const type = evt?.type;
+    const data = evt?.data;
     if (type !== "user.created") {
       return NextResponse.json({ ok: true });
     }
@@ -51,13 +52,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing user id" }, { status: 400 });
     }
 
-    const clerk = new Clerk({ apiKey: process.env.CLERK_SECRET_KEY! });
-    await clerk.users.updateUser(userId, {
+    const client = await clerkClient();
+    await client.users.updateUser(userId, {
       privateMetadata: { role: "customer" },
     });
 
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 });
+  } catch (err: unknown) {
+    const msg = (typeof err === "object" && err !== null && "message" in err)
+      ? String((err as { message?: string }).message || "Internal error")
+      : "Internal error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

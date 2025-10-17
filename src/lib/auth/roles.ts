@@ -11,7 +11,7 @@ export const AllowedRoles = [
 export type Role = (typeof AllowedRoles)[number];
 
 export async function requireRole(allowed: Role[]) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     throw new Error("Unauthenticated");
   }

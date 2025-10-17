@@ -114,7 +114,7 @@ export default function ActiveSessionsCardClient({ initialSessions = [] as DbSes
         try { revokeChan?.unsubscribe(); } catch {}
       };
     })();
-  }, [myKey, fetchSessionsFor]);
+  }, [myKey, fetchSessionsFor, initialSessions.length, sessions.length]);
 
   // Re-render relative time every 30s
   useEffect(() => {

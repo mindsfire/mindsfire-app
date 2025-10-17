@@ -5,12 +5,7 @@ function Divider() {
   return <div className="mx-2 h-px bg-border" />;
 }
 
-type PlanRel = { name: string };
-type Subscription = {
-  status: string;
-  current_period_end: string | null;
-  plan?: PlanRel | PlanRel[] | null;
-};
+type PrivateMeta = { role?: string };
 
 export default async function ServerSidebar() {
   const u = await currentUser();
@@ -23,7 +18,8 @@ export default async function ServerSidebar() {
   const displayName = (first || last) ? `${first}${last ? " " + last : ""}` : (email.split("@")[0] || "Account");
 
   // Role from Clerk private metadata; default to customer
-  const role = String((u.privateMetadata as any)?.role ?? "customer").toLowerCase();
+  const pm = (u.privateMetadata ?? {}) as PrivateMeta;
+  const role = String(pm.role ?? "customer").toLowerCase();
 
   // Plan: until DB is mirrored by clerk_user_id, show a safe fallback
   const plan = "No plan";

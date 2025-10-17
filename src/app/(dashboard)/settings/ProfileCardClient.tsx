@@ -11,6 +11,9 @@ import { Select } from "@/components/ui/select";
 import "./phone-input.css";
 import { ChevronDown } from "lucide-react";
 
+// Hoisted to avoid changing useMemo dependencies on every render
+const ALLOWED = ["US", "GB", "DE", "AU", "AE", "IN"] as const;
+
 export default function ProfileCardClient({
   initialPhoneE164 = null,
   initialCountryCode = null,
@@ -32,11 +35,9 @@ export default function ProfileCardClient({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const ALLOWED = ["US", "GB", "DE", "AU", "AE", "IN"] as const;
-
   const countries = useMemo(
     () => Country.getAllCountries().filter((c) => (ALLOWED as readonly string[]).includes(c.isoCode)),
-    [ALLOWED]
+    []
   );
 
   const states = useMemo(

@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSignUp, useAuth } from "@clerk/nextjs";
 
-export default function SignupPage() {
-  const router = useRouter();
+function SignupInner() {
   const search = useSearchParams();
   const { isLoaded, signUp, setActive } = useSignUp();
   const { isSignedIn } = useAuth();
@@ -60,8 +59,11 @@ export default function SignupPage() {
       // Not complete: trigger email OTP and show verification step
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message || err?.message || "Sign up failed");
+    } catch (err: unknown) {
+      const msg = typeof err === "object" && err !== null && "errors" in err
+        ? (err as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+        : (err as { message?: string } | null | undefined)?.message;
+      setError(msg || "Sign up failed");
     } finally {
       setLoading(false);
     }
@@ -80,8 +82,11 @@ export default function SignupPage() {
         return;
       }
       setError("Verification not completed. Please try again.");
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message || err?.message || "Invalid code");
+    } catch (err: unknown) {
+      const msg = typeof err === "object" && err !== null && "errors" in err
+        ? (err as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+        : (err as { message?: string } | null | undefined)?.message;
+      setError(msg || "Invalid code");
     } finally {
       setLoading(false);
     }
@@ -241,8 +246,11 @@ export default function SignupPage() {
                     if (!isLoaded) return;
                     await signUp!.prepareEmailAddressVerification({ strategy: "email_code" });
                     setInfo("Code sent. Please check your email inbox/spam.");
-                  } catch (e: any) {
-                    setError(e?.errors?.[0]?.message || e?.message || "Could not resend code");
+                  } catch (e: unknown) {
+                    const msg = typeof e === "object" && e !== null && "errors" in e
+                      ? (e as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+                      : (e as { message?: string } | null | undefined)?.message;
+                    setError(msg || "Could not resend code");
                   }
                 }}
                 className="w-full h-10 rounded-md border border-border text-foreground hover:bg-muted/50 transition disabled:opacity-60"
@@ -294,5 +302,13 @@ export default function SignupPage() {
       </section>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupInner />
+    </Suspense>
   );
 }

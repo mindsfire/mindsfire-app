@@ -4,14 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSignIn, useAuth, useClerk } from "@clerk/nextjs";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoaded, signIn, setActive } = useSignIn();
   const { isSignedIn } = useAuth();
-  const { signOut } = useClerk();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

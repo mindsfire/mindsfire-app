@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSignIn, useAuth, useClerk } from "@clerk/nextjs";
 
-export default function HeadlessSignInPage() {
+function HeadlessSignInInner() {
   const router = useRouter();
   const search = useSearchParams();
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -36,8 +36,11 @@ export default function HeadlessSignInPage() {
       } else {
         setError("Additional steps required (MFA/password reset). Not handled in this demo.");
       }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message || err?.message || "Sign in failed");
+    } catch (err: unknown) {
+      const msg = typeof err === "object" && err !== null && "errors" in err
+        ? (err as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+        : (err as { message?: string } | null | undefined)?.message;
+      setError(msg || "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -58,5 +61,13 @@ export default function HeadlessSignInPage() {
         <button onClick={() => signOut().then(()=>router.refresh())} className="text-xs underline text-muted-foreground">Sign out current session</button>
       </div>
     </div>
+  );
+}
+
+export default function HeadlessSignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <HeadlessSignInInner />
+    </Suspense>
   );
 }
