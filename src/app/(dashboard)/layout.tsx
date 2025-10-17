@@ -2,17 +2,15 @@ import { ReactNode, Suspense } from "react";
 import TopbarServer from "./TopbarServer";
 import ServerSidebar from "./ServerSidebar";
 import InitialLoadGate from "./InitialLoadGate";
-import SessionBootstrapClient from "./SessionBootstrapClient";
-import { supabaseServer } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
  
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  // Server-side guard: if not authenticated, redirect to login
-  const supabase = await supabaseServer();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
+  // Server-side guard (Clerk): if not authenticated, redirect to login
+  const { userId } = await auth();
+  if (!userId) {
     redirect("/login?redirect=%2Foverview");
   }
 
@@ -20,7 +18,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <div className="min-h-dvh">
       <div id="ssr-initial-overlay" className="fixed inset-0 z-[2147483646] bg-white dark:bg-black" aria-hidden />
       <InitialLoadGate />
-      <SessionBootstrapClient />
       <Suspense fallback={<div className="h-[64px]" aria-hidden />}> 
         <TopbarServer />
       </Suspense>

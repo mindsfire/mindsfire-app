@@ -1,5 +1,5 @@
 import TopbarClient from "./TopbarClient";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { currentUser } from "@clerk/nextjs/server";
 
 function computeInitials(name?: string | null, email?: string | null, first?: string | null, last?: string | null) {
   const fn = first?.trim();
@@ -21,26 +21,11 @@ function computeInitials(name?: string | null, email?: string | null, first?: st
 }
 
 export default async function TopbarServer() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  const u = data.user;
-
-  let name: string | undefined = (u?.user_metadata?.full_name as string) || undefined;
-  let email: string | undefined = u?.email || undefined;
-  let first_name: string | undefined;
-  let last_name: string | undefined;
-
-  if (u?.id) {
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("first_name, last_name, name, email")
-      .eq("id", u.id)
-      .maybeSingle();
-    name = prof?.name ?? name;
-    email = prof?.email ?? email;
-    first_name = prof?.first_name ?? undefined;
-    last_name = prof?.last_name ?? undefined;
-  }
+  const u = await currentUser();
+  const first_name: string | undefined = (u?.firstName as string) || undefined;
+  const last_name: string | undefined = (u?.lastName as string) || undefined;
+  const email: string | undefined = (u?.emailAddresses?.[0]?.emailAddress as string) || undefined;
+  const name: string | undefined = u ? `${u.firstName ?? ""}${u.lastName ? " " + u.lastName : ""}`.trim() || undefined : undefined;
 
   const initials = computeInitials(name, email, first_name, last_name);
   return <TopbarClient initials={initials} name={name} email={email} />;

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { useClerk } from "@clerk/nextjs";
 
 export type TopbarClientProps = {
   initials: string;
@@ -15,6 +15,7 @@ export type TopbarClientProps = {
 
 export default function TopbarClient({ initials, name, email }: TopbarClientProps) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,11 +30,8 @@ export default function TopbarClient({ initials, name, email }: TopbarClientProp
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
     setMenuOpen(false);
-    router.replace("/login");
-    router.refresh();
+    await signOut({ redirectUrl: "/login" });
   };
 
   return (
