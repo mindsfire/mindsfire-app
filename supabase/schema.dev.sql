@@ -52,6 +52,21 @@ alter table public.profiles add column if not exists region text;
 alter table public.profiles add column if not exists phone_verified boolean not null default false;
 alter table public.profiles add column if not exists updated_at timestamp with time zone not null default now();
 
+-- Ensure UUID default for profiles.id so inserts without id work
+do $$ begin
+  perform 1
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'profiles' and column_name = 'id' and data_type = 'uuid';
+  -- If id column exists and is uuid, set default to gen_random_uuid()
+  if found then
+    execute 'alter table public.profiles alter column id set default gen_random_uuid()';
+  end if;
+end $$;
+
+-- Map Clerk users to profiles without changing UUID PKs
+alter table public.profiles add column if not exists clerk_id text;
+create unique index if not exists profiles_clerk_id_key on public.profiles (clerk_id);
+
 -- 4.2 user_sessions: track app-level sessions per user for granular revoke UX
 create table if not exists public.user_sessions (
   id uuid primary key default gen_random_uuid(),

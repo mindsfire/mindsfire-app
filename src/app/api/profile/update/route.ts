@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { auth } from "@clerk/nextjs/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { clerkClient } from "@clerk/nextjs/server";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const ALLOWED = new Set(["US", "GB", "DE", "AU", "AE", "IN"]);
 
@@ -11,14 +16,8 @@ type Body = {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await supabaseServer();
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-
-    if (userErr) return NextResponse.json({ error: userErr.message }, { status: 401 });
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { phone_e164, country_code, region } = (await req.json()) as Body;
 
@@ -28,15 +27,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid country_code" }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const admin = getSupabaseAdmin();
+
+    // Try to include email for first-time inserts where email may be NOT NULL
+    let email: string | null = null;
+    try {
+      const client = await clerkClient();
+      const u = await client.users.getUser(userId);
+      email = (u?.emailAddresses?.[0]?.emailAddress as string) ?? null;
+    } catch {}
+    const { error } = await admin
       .from("profiles")
-      .update({
+      .upsert({
+        clerk_id: userId,
         phone_e164: phone_e164 ?? null,
         country_code: cc,
         region: region ?? null,
+        email: email,
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
+      }, { onConflict: "clerk_id" });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
