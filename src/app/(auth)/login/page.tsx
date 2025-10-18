@@ -2,15 +2,27 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { isSignedIn } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // If already signed in, redirect away from login
+  useEffect(() => {
+    if (isSignedIn) {
+      const next = searchParams.get("redirect") || "/overview";
+      // Force a full reload to ensure middleware/session state is fresh
+      if (typeof window !== "undefined") window.location.replace(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -21,28 +33,28 @@ function LoginInner() {
       const formData = new FormData(form);
       const email = String(formData.get("email") || "").trim();
       const password = String(formData.get("password") || "");
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError(error.message);
+      if (!isLoaded) {
+        setError("Authentication not ready. Please try again.");
         return;
       }
-      // Ensure server has the session cookies set for middleware
-      const access_token = data.session?.access_token;
-      const refresh_token = data.session?.refresh_token;
-      if (access_token && refresh_token) {
-        await fetch("/api/auth/set-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ access_token, refresh_token }),
-        });
+      const res = await signIn.create({ identifier: email, password });
+      if (res.status === "complete") {
+        await setActive({ session: res.createdSessionId });
+        const next = searchParams.get("redirect") || "/overview";
+        // Force navigation to avoid any cached router state
+        if (typeof window !== "undefined") window.location.replace(next);
+      } else {
+        setError("Additional steps required (MFA/reset). Please use the standard sign-in.");
       }
-      const next = searchParams.get("redirect") || "/overview";
-      router.replace(next);
-      router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      // If the user is already signed in, redirect instead of showing an error
+      if (/already signed in/i.test(message)) {
+        const next = searchParams.get("redirect") || "/overview";
+        router.replace(next);
+        router.refresh();
+        return;
+      }
       setError(message);
     } finally {
       setLoading(false);

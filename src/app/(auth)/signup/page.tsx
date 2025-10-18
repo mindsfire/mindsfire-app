@@ -2,8 +2,96 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useSignUp, useAuth } from "@clerk/nextjs";
 
-export default function SignupPage() {
+function SignupInner() {
+  const search = useSearchParams();
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { isSignedIn } = useAuth();
+
+  const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [code, setCode] = useState("");
+  const [info, setInfo] = useState<string | null>(null);
+
+  // If already signed in, go to overview (or redirect)
+  useEffect(() => {
+    if (isSignedIn) {
+      const next = search.get("redirect") || "/overview";
+      if (typeof window !== "undefined") window.location.replace(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
+
+  const nextUrl = () => search.get("redirect") || "/overview";
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
+    if (password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+    setLoading(true);
+    try {
+      const firstName = name.trim();
+      const ln = lastName.trim();
+      const res = await signUp.create({
+        emailAddress: email.trim(),
+        password,
+        ...(firstName ? { firstName } : {}),
+        ...(ln ? { lastName: ln } : {}),
+      });
+      if (res.status === "complete") {
+        await setActive({ session: res.createdSessionId });
+        if (typeof window !== "undefined") window.location.replace(nextUrl());
+        return;
+      }
+      // Not complete: trigger email OTP and show verification step
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setPendingVerification(true);
+    } catch (err: unknown) {
+      const msg = typeof err === "object" && err !== null && "errors" in err
+        ? (err as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+        : (err as { message?: string } | null | undefined)?.message;
+      setError(msg || "Sign up failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
+    setLoading(true);
+    try {
+      const res = await signUp.attemptEmailAddressVerification({ code });
+      if (res.status === "complete") {
+        await setActive({ session: res.createdSessionId });
+        if (typeof window !== "undefined") window.location.replace(nextUrl());
+        return;
+      }
+      setError("Verification not completed. Please try again.");
+    } catch (err: unknown) {
+      const msg = typeof err === "object" && err !== null && "errors" in err
+        ? (err as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+        : (err as { message?: string } | null | undefined)?.message;
+      setError(msg || "Invalid code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-dvh relative">
       {/* Background: make right 70% white behind header and body */}
@@ -39,16 +127,36 @@ export default function SignupPage() {
           <h1 className="text-2xl font-semibold mb-2">Get Started</h1>
           <p className="text-sm text-muted-foreground mb-6">Create a new account</p>
 
-          <form className="space-y-4">
+          {/* Sign up form */}
+          {!pendingVerification && (
+          <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">Full name</label>
+              <label htmlFor="name" className="text-sm font-medium">First name</label>
               <input
                 id="name"
                 name="name"
                 type="text"
                 autoComplete="name"
-                placeholder="Jane Smith"
+                placeholder="Jane"
                 required
+                value={name}
+                onChange={(e)=>setName(e.target.value)}
+                disabled={loading}
+                className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="lastName" className="text-sm font-medium">Last name</label>
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                placeholder="Smith"
+                required
+                value={lastName}
+                onChange={(e)=>setLastName(e.target.value)}
+                disabled={loading}
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
             </div>
@@ -61,6 +169,9 @@ export default function SignupPage() {
                 autoComplete="email"
                 placeholder="Your email address"
                 required
+                value={email}
+                onChange={(e)=>setEmail(e.target.value)}
+                disabled={loading}
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
             </div>
@@ -73,6 +184,9 @@ export default function SignupPage() {
                 autoComplete="new-password"
                 placeholder="*****"
                 required
+                value={password}
+                onChange={(e)=>setPassword(e.target.value)}
+                disabled={loading}
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
             </div>
@@ -85,14 +199,66 @@ export default function SignupPage() {
                 autoComplete="new-password"
                 placeholder="*****"
                 required
+                value={confirm}
+                onChange={(e)=>setConfirm(e.target.value)}
+                disabled={loading}
                 className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               />
             </div>
 
-            <button type="submit" className="w-full h-10 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition">
-              Create account
+            {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
+
+            <button type="submit" disabled={loading} className="w-full h-10 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-60">
+              {loading ? "Creating..." : "Create account"}
             </button>
           </form>
+          )}
+
+          {/* Email code verification step (if enabled in Clerk) */}
+          {pendingVerification && (
+            <form className="space-y-4" onSubmit={onVerify}>
+              <div className="space-y-2">
+                <label htmlFor="code" className="text-sm font-medium">Verification code</label>
+                <input
+                  id="code"
+                  name="code"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Enter the 6-digit code sent to your email"
+                  value={code}
+                  onChange={(e)=>setCode(e.target.value)}
+                  disabled={loading}
+                  className="block w-full h-10 rounded-md bg-card text-card-foreground border border-border px-3 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                />
+              </div>
+              {error && <div className="text-sm text-red-600" role="alert">{error}</div>}
+              {info && <div className="text-sm text-green-600" role="status">{info}</div>}
+              <button type="submit" disabled={loading} className="w-full h-10 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-60">
+                {loading ? "Verifying..." : "Verify and continue"}
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async ()=>{
+                  setError(null);
+                  setInfo(null);
+                  try {
+                    if (!isLoaded) return;
+                    await signUp!.prepareEmailAddressVerification({ strategy: "email_code" });
+                    setInfo("Code sent. Please check your email inbox/spam.");
+                  } catch (e: unknown) {
+                    const msg = typeof e === "object" && e !== null && "errors" in e
+                      ? (e as { errors?: Array<{ message?: string }> }).errors?.[0]?.message
+                      : (e as { message?: string } | null | undefined)?.message;
+                    setError(msg || "Could not resend code");
+                  }
+                }}
+                className="w-full h-10 rounded-md border border-border text-foreground hover:bg-muted/50 transition disabled:opacity-60"
+              >
+                Resend code
+              </button>
+            </form>
+          )}
 
           <p className="mt-6 text-sm text-muted-foreground">
             Already have an account?{" "}
@@ -136,5 +302,13 @@ export default function SignupPage() {
       </section>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupInner />
+    </Suspense>
   );
 }

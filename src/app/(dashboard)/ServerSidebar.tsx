@@ -1,49 +1,28 @@
-import { supabaseServer } from "@/lib/supabaseServer";
+import { currentUser } from "@clerk/nextjs/server";
 import { ClientNavList, type NavItem } from "./ClientNavList";
 
 function Divider() {
   return <div className="mx-2 h-px bg-border" />;
 }
 
-type PlanRel = { name: string };
-type Subscription = {
-  status: string;
-  current_period_end: string | null;
-  plan?: PlanRel | PlanRel[] | null;
-};
+type PrivateMeta = { role?: string };
 
 export default async function ServerSidebar() {
-  const supabase = await supabaseServer();
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user?.id) return null;
+  const u = await currentUser();
+  if (!u) return null;
 
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("first_name, last_name, name, email, role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Derive display info from Clerk
+  const first = (u.firstName ?? "").trim();
+  const last = (u.lastName ?? "").trim();
+  const email = u.emailAddresses?.[0]?.emailAddress ?? "";
+  const displayName = (first || last) ? `${first}${last ? " " + last : ""}` : (email.split("@")[0] || "Account");
 
-  const { data: subs } = await supabase
-    .from("subscriptions")
-    .select("status, current_period_end, plan:plan_id(name)")
-    .eq("customer_id", user.id)
-    .in("status", ["trialing", "active"]);
+  // Role from Clerk private metadata; default to customer
+  const pm = (u.privateMetadata ?? {}) as PrivateMeta;
+  const role = String(pm.role ?? "customer").toLowerCase();
 
-  const subList: Subscription[] = (subs ?? []) as unknown as Subscription[];
-  const latest = subList
-    .sort((a, b) => (new Date(b.current_period_end || 0).getTime() - new Date(a.current_period_end || 0).getTime()))[0];
-  const planRel = latest?.plan;
-  const plan = (Array.isArray(planRel) ? planRel[0]?.name : planRel?.name) || "No plan";
-
-  const email = prof?.email || user.email || "";
-  const meta = (user?.user_metadata ?? {}) as Record<string, unknown> & { first_name?: string; last_name?: string; full_name?: string };
-  const displayName = ([prof?.first_name, prof?.last_name].filter(Boolean).join(" "))
-    || prof?.name
-    || ([meta.first_name, meta.last_name].filter(Boolean).join(" ") || meta.full_name as string | undefined)
-    || (email.split("@")[0] || "Account");
-
-  const role = String(prof?.role || "customer").toLowerCase();
+  // Plan: until DB is mirrored by clerk_user_id, show a safe fallback
+  const plan = "No plan";
 
   const base: NavItem[] = [
     { href: "/overview", label: "Overview", iconKey: "gauge" },
@@ -51,7 +30,8 @@ export default async function ServerSidebar() {
   ];
 
   const customer: NavItem[] = [
-    { href: "/assistance", label: "Assistance", iconKey: "life-buoy" },
+    { href: "/myassistant", label: "My Assistant", iconKey: "user" },
+    { href: "/tasks", label: "Tasks", iconKey: "tasks" },
     { href: "/requests", label: "Requests", iconKey: "list-checks" },
     { href: "/usage", label: "Usage", iconKey: "bar-chart" },
     { href: "/billing", label: "Billing & Invoices", iconKey: "receipt" },
@@ -78,11 +58,9 @@ export default async function ServerSidebar() {
           <div className="space-y-2">
             <ClientNavList items={base} />
             <Divider />
-            <ClientNavList items={customer.slice(0, 2)} />
+            <ClientNavList items={customer.slice(0, 3)} />
             <Divider />
-            <ClientNavList items={customer.slice(2, 4)} />
-            <Divider />
-            <ClientNavList items={customer.slice(4)} />
+            <ClientNavList items={customer.slice(3)} />
           </div>
         )}
       </nav>

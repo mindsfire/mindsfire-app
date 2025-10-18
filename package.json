@@ -10,6 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/nextjs": "^6.33.6",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",
@@ -20,10 +22,14 @@
     "@supabase/supabase-js": "^2.74.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "country-state-city": "^3.2.1",
+    "libphonenumber-js": "^1.12.24",
     "lucide-react": "^0.545.0",
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-phone-number-input": "^3.4.12",
+    "svix": "^1.77.0",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {

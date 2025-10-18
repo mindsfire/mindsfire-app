@@ -1,7 +1,7 @@
 export default function IntegrationsPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Integrations</h1>
+      <h1 className="text-xl font-semibold">Integrations</h1>
       <div className="rounded-xl border border-border bg-card p-0">
         <div className="divide-y">
           {[

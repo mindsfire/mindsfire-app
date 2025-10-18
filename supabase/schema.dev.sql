@@ -45,6 +45,47 @@ create table if not exists public.profiles (
   created_at timestamp with time zone not null default now()
 );
 
+-- Add contact/location columns to profiles (idempotent)
+alter table public.profiles add column if not exists phone_e164 text;
+alter table public.profiles add column if not exists country_code char(2);
+alter table public.profiles add column if not exists region text;
+alter table public.profiles add column if not exists phone_verified boolean not null default false;
+alter table public.profiles add column if not exists updated_at timestamp with time zone not null default now();
+
+-- 4.2 user_sessions: track app-level sessions per user for granular revoke UX
+create table if not exists public.user_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  session_key text not null,              -- stable key per device/app install
+  label text not null,                    -- e.g. "Web", "Desktop App", "Mobile"
+  user_agent text,                        -- optional UA string
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  revoked_at timestamptz
+);
+
+create unique index if not exists idx_user_sessions_user_session_key
+  on public.user_sessions (user_id, session_key);
+
+alter table public.user_sessions enable row level security;
+
+-- RLS: user can read/insert/update own rows (or admin bypass)
+drop policy if exists "sessions_read_own" on public.user_sessions;
+create policy "sessions_read_own"
+  on public.user_sessions for select
+  using ( user_id = auth.uid() or is_admin() );
+
+drop policy if exists "sessions_insert_own" on public.user_sessions;
+create policy "sessions_insert_own"
+  on public.user_sessions for insert
+  with check ( user_id = auth.uid() or is_admin() );
+
+drop policy if exists "sessions_update_own" on public.user_sessions;
+create policy "sessions_update_own"
+  on public.user_sessions for update
+  using ( user_id = auth.uid() or is_admin() )
+  with check ( user_id = auth.uid() or is_admin() );
+
 -- Now that profiles exists, create is_admin()
 create or replace function is_admin()
 returns boolean
