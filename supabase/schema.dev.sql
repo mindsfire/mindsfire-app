@@ -87,6 +87,55 @@ alter table public.user_sessions enable row level security;
 -- RLS: user can read/insert/update own rows (or admin bypass)
 drop policy if exists "sessions_read_own" on public.user_sessions;
 create policy "sessions_read_own"
+
+-- 5.x VA assignments: map customers -> primary/secondary VAs (primary is a VA)
+create table if not exists public.va_assignments (
+  id uuid primary key default gen_random_uuid(),
+
+  -- customer who receives VA support
+  customer_profile_id uuid not null references public.profiles(id) on delete cascade,
+
+  -- primary VA (must be role 'va' in app layer)
+  primary_va_profile_id uuid not null references public.profiles(id) on delete restrict,
+
+  -- secondary VA (optional)
+  secondary_va_profile_id uuid references public.profiles(id) on delete set null,
+
+  -- audit
+  assigned_by_profile_id uuid references public.profiles(id) on delete set null,
+
+  active boolean not null default true,
+  notes text,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Only one ACTIVE assignment per customer
+create unique index if not exists uq_va_assignments_customer_active
+  on public.va_assignments (customer_profile_id)
+  where (active is true);
+
+-- Lookups for VA dashboards
+create index if not exists idx_va_assignments_primary_va
+  on public.va_assignments (primary_va_profile_id)
+  where (active is true);
+
+create index if not exists idx_va_assignments_secondary_va
+  on public.va_assignments (secondary_va_profile_id)
+  where (active is true);
+
+create index if not exists idx_va_assignments_customer
+  on public.va_assignments (customer_profile_id);
+
+alter table public.va_assignments enable row level security;
+
+-- Placeholder RLS (server uses Service Role; lock writes from clients)
+drop policy if exists "va_assignments_read_all_server_only" on public.va_assignments;
+create policy "va_assignments_read_all_server_only" on public.va_assignments for select using (true);
+
+drop policy if exists "va_assignments_write_none_client" on public.va_assignments;
+create policy "va_assignments_write_none_client" on public.va_assignments for all using (false) with check (false);
   on public.user_sessions for select
   using ( user_id = auth.uid() or is_admin() );
 
