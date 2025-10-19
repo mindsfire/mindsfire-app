@@ -106,7 +106,7 @@ export default function Topbar() {
             onClick={() => setMenuOpen((v) => !v)}
             className="flex h-12 w-12 items-center justify-center rounded-full outline-none focus:outline-none"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background text-foreground">
               <span className="text-[11px] font-semibold tracking-wide">{avatarLoaded ? initials : ''}</span>
             </div>
           </button>
@@ -120,7 +120,7 @@ export default function Topbar() {
               </div>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-between text-left text-sm rounded-md px-2 py-2 hover:bg-muted/50"
+                className="w-full flex items-center justify-between text-left text-sm rounded-md px-2 py-2 hover:bg-[#E7F1FF] cursor-pointer"
               >
                 <span>Log Out</span>
                 <LogOut className="size-4" />
