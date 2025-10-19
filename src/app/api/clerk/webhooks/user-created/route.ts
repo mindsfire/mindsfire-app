@@ -47,6 +47,10 @@ export async function POST(req: Request) {
         id?: string;
         email_addresses?: Array<{ id?: string; email_address?: string }>;
         primary_email_address_id?: string;
+        first_name?: string | null;
+        last_name?: string | null;
+        username?: string | null;
+        external_id?: string | null;
       };
     };
     const type = evt?.type;
@@ -63,8 +67,9 @@ export async function POST(req: Request) {
     const client = await clerkClient();
     await client.users.updateUser(userId, { privateMetadata: { role: "customer" } });
 
-    // Determine primary email from event payload; fallback to Clerk API if needed
+    // Determine primary email and display name from event payload; fallback to Clerk API if needed
     let email: string | null = null;
+    let displayName: string | null = null;
     const emails = evt?.data?.email_addresses ?? [];
     const primaryId = evt?.data?.primary_email_address_id;
     if (emails.length) {
@@ -75,7 +80,13 @@ export async function POST(req: Request) {
       try {
         const u = await client.users.getUser(userId);
         email = (u?.emailAddresses?.[0]?.emailAddress as string) ?? null;
+        displayName = (u?.fullName as string) ?? null;
       } catch {}
+    }
+    if (!displayName) {
+      const first = (evt?.data as any)?.first_name as string | undefined;
+      const last = (evt?.data as any)?.last_name as string | undefined;
+      if (first || last) displayName = [first, last].filter(Boolean).join(" ");
     }
 
     // Seed profiles row for this user in Supabase (clerk_id + required email if present)
@@ -83,7 +94,7 @@ export async function POST(req: Request) {
     await db
       .from("profiles")
       .upsert(
-        { clerk_id: userId, email: email, created_at: new Date().toISOString() },
+        { clerk_id: userId, email: email, display_name: displayName, created_at: new Date().toISOString() },
         { onConflict: "clerk_id" }
       );
 

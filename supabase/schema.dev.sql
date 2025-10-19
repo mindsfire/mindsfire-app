@@ -51,6 +51,7 @@ alter table public.profiles add column if not exists country_code char(2);
 alter table public.profiles add column if not exists region text;
 alter table public.profiles add column if not exists phone_verified boolean not null default false;
 alter table public.profiles add column if not exists updated_at timestamp with time zone not null default now();
+alter table public.profiles add column if not exists display_name text;
 
 -- Ensure UUID default for profiles.id so inserts without id work
 do $$ begin
@@ -138,6 +139,53 @@ drop policy if exists "va_assignments_write_none_client" on public.va_assignment
 create policy "va_assignments_write_none_client" on public.va_assignments for all using (false) with check (false);
   on public.user_sessions for select
   using ( user_id = auth.uid() or is_admin() );
+
+-- RPC: get_customer_assignment(clerk_id)
+create or replace function public.get_customer_assignment(p_clerk_id text)
+returns table (
+  primary_va_id uuid,
+  primary_email text,
+  primary_display_name text,
+  primary_phone text,
+  primary_country char(2),
+  primary_region text,
+  secondary_va_id uuid,
+  secondary_email text,
+  secondary_display_name text,
+  secondary_phone text,
+  secondary_country char(2),
+  secondary_region text
+)
+language sql
+security definer
+set search_path = public
+as $$
+  with me as (
+    select id from public.profiles where clerk_id = p_clerk_id
+  ), a as (
+    select primary_va_profile_id, secondary_va_profile_id
+    from public.va_assignments
+    where customer_profile_id = (select id from me)
+      and active = true
+    limit 1
+  )
+  select
+    p1.id as primary_va_id,
+    p1.email as primary_email,
+    p1.display_name as primary_display_name,
+    p1.phone_e164 as primary_phone,
+    p1.country_code as primary_country,
+    p1.region as primary_region,
+    p2.id as secondary_va_id,
+    p2.email as secondary_email,
+    p2.display_name as secondary_display_name,
+    p2.phone_e164 as secondary_phone,
+    p2.country_code as secondary_country,
+    p2.region as secondary_region
+  from a
+  left join public.profiles p1 on p1.id = a.primary_va_profile_id
+  left join public.profiles p2 on p2.id = a.secondary_va_profile_id;
+$$;
 
 drop policy if exists "sessions_insert_own" on public.user_sessions;
 create policy "sessions_insert_own"
