@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import AssistantActions from "@/components/assistant/AssistantActions";
+import AssistantActionMenu from "@/components/assistant/AssistantActionMenu";
 
 export default function MyAssistantPage() {
   return (
@@ -20,16 +20,7 @@ export default function MyAssistantPage() {
           <div className="text-sm text-muted-foreground">Quick actions and tools, coming soon.</div>
         </div>
       </section>
-      <section className="space-y-2">
-        <div className="flex items-baseline justify-start">
-          <div>
-            <h2 className="text-xs font-medium">Requests</h2>
-          </div>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Access your Requests here. <a href="/requests" className="underline hover:no-underline">Go to Requests</a>.</div>
-        </div>
-      </section>
+      {/* Requests section removed */}
     </div>
   );
 }
@@ -100,7 +91,7 @@ async function AssistantsSection() {
                 <div className="whitespace-nowrap -ml-3"><span className="inline-flex h-7 items-center rounded-md border border-green-600 bg-[#f0f8ff] px-3 text-xs font-medium text-green-600">Assigned</span></div>
               </div>
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <AssistantActions name={primaryLabel} email={primary?.email ?? undefined} phoneE164={null} />
+                <AssistantActionMenu name={primaryLabel} email={primary?.email ?? undefined} phoneE164={null} />
               </div>
             </div>
           ) : (
@@ -119,7 +110,7 @@ async function AssistantsSection() {
                 <div className="whitespace-nowrap -ml-3"><span className="inline-flex h-7 items-center rounded-md border border-green-600 bg-[#f0f8ff] px-3 text-xs font-medium text-green-600">Assigned</span></div>
               </div>
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <AssistantActions name={secondaryLabel} email={secondary?.email ?? undefined} phoneE164={null} />
+                <AssistantActionMenu name={secondaryLabel} email={secondary?.email ?? undefined} phoneE164={null} />
               </div>
             </div>
           )}

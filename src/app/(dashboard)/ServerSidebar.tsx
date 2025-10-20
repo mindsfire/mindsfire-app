@@ -32,7 +32,6 @@ export default async function ServerSidebar() {
   const customer: NavItem[] = [
     { href: "/myassistant", label: "My Assistant", iconKey: "user" },
     { href: "/tasks", label: "Tasks", iconKey: "tasks" },
-    { href: "/requests", label: "Requests", iconKey: "list-checks" },
     { href: "/usage", label: "Usage", iconKey: "bar-chart" },
     { href: "/billing", label: "Billing & Invoices", iconKey: "receipt" },
     { href: "/contact", label: "Contact Us", iconKey: "message" },

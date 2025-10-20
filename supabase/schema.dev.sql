@@ -474,6 +474,166 @@ drop policy if exists "audit_logs_admin_write" on public.audit_logs;
 create policy "audit_logs_admin_write"
   on public.audit_logs for all using ( is_admin() ) with check ( is_admin() );
 
+-- 8.x) VA reporting: map VA -> team lead/manager (for CC emails) ------------
+create table if not exists public.va_reporting (
+  va_profile_id uuid primary key references public.profiles(id) on delete cascade,
+  team_lead_profile_id uuid references public.profiles(id) on delete set null,
+  manager_profile_id uuid references public.profiles(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.va_reporting enable row level security;
+
+drop policy if exists "va_reporting_read_all" on public.va_reporting;
+create policy "va_reporting_read_all"
+  on public.va_reporting for select using ( true );
+
+drop policy if exists "va_reporting_write_server_only" on public.va_reporting;
+create policy "va_reporting_write_server_only"
+  on public.va_reporting for all using ( false ) with check ( false );
+
+-- 8.y) Assistant messages ----------------------------------------------------
+create table if not exists public.assistant_messages (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  va_id uuid not null references public.profiles(id) on delete set null,
+  subject text,
+  body text not null,
+  created_at timestamptz not null default now(),
+  constraint chk_assistant_messages_body_len check (length(body) <= 1000),
+  constraint chk_assistant_messages_subject_len check (subject is null or length(subject) <= 120)
+);
+
+create index if not exists idx_assistant_messages_customer_created on public.assistant_messages (customer_id, created_at desc);
+
+alter table public.assistant_messages enable row level security;
+
+drop policy if exists "assistant_messages_select_owner_or_admin" on public.assistant_messages;
+create policy "assistant_messages_select_owner_or_admin"
+  on public.assistant_messages for select using ( customer_id = auth.uid() or is_admin() );
+
+drop policy if exists "assistant_messages_write_server_only" on public.assistant_messages;
+create policy "assistant_messages_write_server_only"
+  on public.assistant_messages for all using ( false ) with check ( false );
+
+-- 8.z) Tasks (lightweight, to surface on Tasks page) -------------------------
+create table if not exists public.tasks (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  assignee_va_id uuid not null references public.profiles(id) on delete set null,
+  title text not null,
+  description text,
+  status text not null default 'new',
+  created_at timestamptz not null default now(),
+  constraint chk_tasks_title_len check (length(title) <= 120),
+  constraint chk_tasks_desc_len check (description is null or length(description) <= 4000)
+);
+
+create index if not exists idx_tasks_customer_status on public.tasks (customer_id, status);
+create index if not exists idx_tasks_assignee on public.tasks (assignee_va_id);
+
+alter table public.tasks enable row level security;
+
+drop policy if exists "tasks_select_owner_or_assignee_or_admin" on public.tasks;
+create policy "tasks_select_owner_or_assignee_or_admin"
+  on public.tasks for select using ( customer_id = auth.uid() or assignee_va_id = auth.uid() or is_admin() );
+
+drop policy if exists "tasks_write_server_only" on public.tasks;
+create policy "tasks_write_server_only"
+  on public.tasks for all using ( false ) with check ( false );
+
+-- 8.aa) Change Assistant requests -------------------------------------------
+create table if not exists public.assistant_change_requests (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  current_va_id uuid references public.profiles(id) on delete set null,
+  reason text not null,
+  details text,
+  status text not null default 'new',
+  created_at timestamptz not null default now(),
+  constraint chk_change_reason_len check (length(reason) <= 64),
+  constraint chk_change_details_len check (details is null or length(details) <= 2000)
+);
+
+create index if not exists idx_change_requests_customer_created on public.assistant_change_requests (customer_id, created_at desc);
+
+alter table public.assistant_change_requests enable row level security;
+
+drop policy if exists "change_requests_select_owner_or_admin" on public.assistant_change_requests;
+create policy "change_requests_select_owner_or_admin"
+  on public.assistant_change_requests for select using ( customer_id = auth.uid() or is_admin() );
+
+drop policy if exists "change_requests_write_server_only" on public.assistant_change_requests;
+create policy "change_requests_write_server_only"
+  on public.assistant_change_requests for all using ( false ) with check ( false );
+
+-- 8.ab) Escalations ----------------------------------------------------------
+create table if not exists public.assistant_escalations (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  va_id uuid references public.profiles(id) on delete set null,
+  severity text not null,
+  subject text not null,
+  details text,
+  status text not null default 'open',
+  created_at timestamptz not null default now(),
+  constraint chk_escalation_severity_len check (length(severity) <= 16),
+  constraint chk_escalation_subject_len check (length(subject) <= 120),
+  constraint chk_escalation_details_len check (details is null or length(details) <= 4000)
+);
+
+create index if not exists idx_escalations_customer_created on public.assistant_escalations (customer_id, created_at desc);
+
+alter table public.assistant_escalations enable row level security;
+
+drop policy if exists "escalations_select_owner_or_admin" on public.assistant_escalations;
+create policy "escalations_select_owner_or_admin"
+  on public.assistant_escalations for select using ( customer_id = auth.uid() or is_admin() );
+
+drop policy if exists "escalations_write_server_only" on public.assistant_escalations;
+create policy "escalations_write_server_only"
+  on public.assistant_escalations for all using ( false ) with check ( false );
+
+-- 8.ac) Recipient resolution RPC --------------------------------------------
+create or replace function public.resolve_va_recipients(p_clerk_id text)
+returns table (
+  customer_id uuid,
+  va_id uuid,
+  va_email text,
+  team_lead_email text,
+  manager_email text
+)
+language sql
+security definer
+set search_path = public
+as $$
+  with me as (
+    select id from public.profiles where clerk_id = p_clerk_id
+  ), a as (
+    select primary_va_profile_id as va_id
+    from public.va_assignments
+    where customer_profile_id = (select id from me)
+      and active = true
+    limit 1
+  ), vr as (
+    select team_lead_profile_id, manager_profile_id
+    from public.va_reporting
+    where va_profile_id = (select va_id from a)
+  )
+  select
+    (select id from me) as customer_id,
+    (select va_id from a) as va_id,
+    pva.email as va_email,
+    ptl.email as team_lead_email,
+    pm.email as manager_email
+  from public.profiles pva
+  left join public.profiles ptl on ptl.id = (select team_lead_profile_id from vr)
+  left join public.profiles pm  on pm.id  = (select manager_profile_id from vr)
+  where pva.id = (select va_id from a);
+$$;
+
+grant execute on function public.resolve_va_recipients(text) to anon, authenticated;
+
 -- 9) Optional: create a private Storage bucket for files ---------------------
 -- select storage.create_bucket('request-files', false);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, MessageSquareText, Phone, ClipboardPlus } from "lucide-react";
+import { ChevronDown, MessageSquareText, Phone, ClipboardPlus, UserRound, AlertTriangle } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export type AssistantActionsProps = {
@@ -11,10 +11,12 @@ export type AssistantActionsProps = {
   onAssignTask?: () => void;
   onMessage?: () => void;
   onCall?: () => void;
+  onChangeAssistant?: () => void;
+  onEscalate?: () => void;
   compact?: boolean;
 };
 
-export default function AssistantActions({ name, email, phoneE164, onAssignTask, onMessage, onCall, compact = true }: AssistantActionsProps) {
+export default function AssistantActions({ name, email, phoneE164, onAssignTask, onMessage, onCall, onChangeAssistant, onEscalate, compact = true }: AssistantActionsProps) {
   const telHref = useMemo(() => (phoneE164 ? `tel:${phoneE164}` : undefined), [phoneE164]);
   const [open, setOpen] = useState(false);
 
@@ -62,6 +64,21 @@ export default function AssistantActions({ name, email, phoneE164, onAssignTask,
         >
           <ClipboardPlus className="size-4" />
           <span>Assign Task</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => onChangeAssistant?.()}
+          className="flex items-center gap-2"
+        >
+          <UserRound className="size-4" />
+          <span>Change Assistant</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onEscalate?.()}
+          className="flex items-center gap-2"
+        >
+          <AlertTriangle className="size-4" />
+          <span>Escalation</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
