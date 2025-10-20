@@ -63,8 +63,14 @@ async function AssistantsSection() {
     country_code: row.secondary_country as string | null,
     region: row.secondary_region as string | null,
   } : null;
-  const primaryLabel = primary?.display_name || primary?.name || (primary?.email ? String(primary.email).split("@")[0] : "Primary");
-  const secondaryLabel = secondary?.display_name || secondary?.name || (secondary?.email ? String(secondary.email).split("@")[0] : "Secondary");
+  const primaryLabel = (row?.primary_best_name as string | null) 
+    || primary?.display_name 
+    || primary?.name 
+    || (primary?.email ? String(primary.email).split("@")[0] : "Primary");
+  const secondaryLabel = (row?.secondary_best_name as string | null)
+    || secondary?.display_name 
+    || secondary?.name 
+    || (secondary?.email ? String(secondary.email).split("@")[0] : "Secondary");
 
   return (
     <section className="space-y-2">

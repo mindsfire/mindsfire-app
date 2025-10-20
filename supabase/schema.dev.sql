@@ -141,12 +141,14 @@ create policy "va_assignments_write_none_client" on public.va_assignments for al
   using ( user_id = auth.uid() or is_admin() );
 
 -- RPC: get_customer_assignment(clerk_id)
+drop function if exists public.get_customer_assignment(text);
 create or replace function public.get_customer_assignment(p_clerk_id text)
 returns table (
   primary_va_id uuid,
   primary_email text,
   primary_display_name text,
   primary_name text,
+  primary_best_name text,
   primary_phone text,
   primary_country char(2),
   primary_region text,
@@ -154,6 +156,7 @@ returns table (
   secondary_email text,
   secondary_display_name text,
   secondary_name text,
+  secondary_best_name text,
   secondary_phone text,
   secondary_country char(2),
   secondary_region text
@@ -176,6 +179,12 @@ as $$
     p1.email as primary_email,
     p1.display_name as primary_display_name,
     p1.name as primary_name,
+    coalesce(
+      nullif(p1.display_name, ''),
+      nullif(p1.name, ''),
+      nullif(trim(concat_ws(' ', p1.first_name, p1.last_name)), ''),
+      split_part(p1.email, '@', 1)
+    ) as primary_best_name,
     p1.phone_e164 as primary_phone,
     p1.country_code as primary_country,
     p1.region as primary_region,
@@ -183,6 +192,12 @@ as $$
     p2.email as secondary_email,
     p2.display_name as secondary_display_name,
     p2.name as secondary_name,
+    coalesce(
+      nullif(p2.display_name, ''),
+      nullif(p2.name, ''),
+      nullif(trim(concat_ws(' ', p2.first_name, p2.last_name)), ''),
+      split_part(p2.email, '@', 1)
+    ) as secondary_best_name,
     p2.phone_e164 as secondary_phone,
     p2.country_code as secondary_country,
     p2.region as secondary_region
