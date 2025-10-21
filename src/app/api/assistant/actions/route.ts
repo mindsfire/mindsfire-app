@@ -5,7 +5,14 @@ import { Resend } from "resend";
 
 // Action payload contracts
 interface MessagePayload { subject?: string; body: string }
-interface AssignTaskPayload { title: string; description?: string }
+interface AssignTaskPayload {
+  title: string;
+  description?: string;
+  estimated_time_minutes: number; // required
+  scheduled_start_at?: string | null; // ISO string, optional
+  scheduled_end_at?: string | null;   // ISO string, optional
+  priority?: string | null;          // optional: 'low'|'normal'|'high'
+}
 interface ChangeAssistantPayload { reason: string; details?: string }
 interface EscalatePayload { severity: string; subject: string; details?: string }
 
@@ -78,10 +85,38 @@ export async function POST(req: Request) {
       if (p.description && p.description.length > 4000) {
         return NextResponse.json({ error: "Task description must be <= 4000 chars" }, { status: 400 });
       }
+      if (!Number.isFinite(p.estimated_time_minutes) || p.estimated_time_minutes <= 0 || p.estimated_time_minutes > 480) {
+        return NextResponse.json({ error: "Estimated time must be between 1 and 480 minutes" }, { status: 400 });
+      }
+      // Basic schedule validation
+      let scheduled_start_at: string | null = p.scheduled_start_at ?? null;
+      let scheduled_end_at: string | null = p.scheduled_end_at ?? null;
+      if (scheduled_start_at) {
+        const d = new Date(scheduled_start_at);
+        if (isNaN(d.getTime())) return NextResponse.json({ error: "Invalid scheduled_start_at" }, { status: 400 });
+        scheduled_start_at = d.toISOString();
+      }
+      if (scheduled_end_at) {
+        const d = new Date(scheduled_end_at);
+        if (isNaN(d.getTime())) return NextResponse.json({ error: "Invalid scheduled_end_at" }, { status: 400 });
+        scheduled_end_at = d.toISOString();
+      }
+      if (scheduled_start_at && scheduled_end_at && new Date(scheduled_end_at) < new Date(scheduled_start_at)) {
+        return NextResponse.json({ error: "scheduled_end_at must be after scheduled_start_at" }, { status: 400 });
+      }
 
       const { data, error } = await db
         .from("tasks")
-        .insert({ customer_id, assignee_va_id: va_id, title: p.title, description: p.description ?? null })
+        .insert({
+          customer_id,
+          assignee_va_id: va_id,
+          title: p.title,
+          description: p.description ?? null,
+          estimated_time_minutes: p.estimated_time_minutes,
+          scheduled_start_at,
+          scheduled_end_at,
+          priority: (p.priority ?? 'normal'),
+        })
         .select("id")
         .single();
       if (error) throw error;

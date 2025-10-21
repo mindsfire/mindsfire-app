@@ -24,6 +24,9 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
   const [assignPending, setAssignPending] = useState(false);
+  const [estMinutes, setEstMinutes] = useState<number>(60);
+  const [scheduledStart, setScheduledStart] = useState<string>("");
+  const [scheduledEnd, setScheduledEnd] = useState<string>("");
 
   const [changeOpen, setChangeOpen] = useState(false);
   const [changeReason, setChangeReason] = useState("performance");
@@ -118,6 +121,44 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
               />
               <div className="text-xs text-muted-foreground text-right">{taskTitle.length}/120</div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1 sm:col-span-1">
+                <label className="text-xs text-muted-foreground">Estimated time</label>
+                <select
+                  className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  value={estMinutes}
+                  onChange={(e) => setEstMinutes(parseInt(e.target.value, 10))}
+                >
+                  <option value={15}>15 minutes</option>
+                  <option value={30}>30 minutes</option>
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1 hour 30 min</option>
+                  <option value={120}>2 hours</option>
+                  <option value={180}>3 hours</option>
+                  <option value={240}>4 hours</option>
+                  <option value={300}>5 hours</option>
+                  <option value={480}>8 hours</option>
+                </select>
+              </div>
+              <div className="space-y-1 sm:col-span-1">
+                <label className="text-xs text-muted-foreground">Scheduled start (optional)</label>
+                <input
+                  type="datetime-local"
+                  className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  value={scheduledStart}
+                  onChange={(e) => setScheduledStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-1">
+                <label className="text-xs text-muted-foreground">Scheduled end (optional)</label>
+                <input
+                  type="datetime-local"
+                  className="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  value={scheduledEnd}
+                  onChange={(e) => setScheduledEnd(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="space-y-1">
               <textarea
                 value={taskDesc}
@@ -136,10 +177,25 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
               onClick={async () => {
                 try {
                   setAssignPending(true);
-                  await postAction({ action: "assign_task", payload: { title: taskTitle, description: taskDesc || undefined } });
+                  // Convert datetime-local (which is local) to ISO. If empty, send undefined
+                  const startIso = scheduledStart ? new Date(scheduledStart).toISOString() : undefined;
+                  const endIso = scheduledEnd ? new Date(scheduledEnd).toISOString() : undefined;
+                  await postAction({
+                    action: "assign_task",
+                    payload: {
+                      title: taskTitle,
+                      description: taskDesc || undefined,
+                      estimated_time_minutes: estMinutes,
+                      scheduled_start_at: startIso ?? null,
+                      scheduled_end_at: endIso ?? null,
+                    },
+                  });
                   setAssignOpen(false);
                   setTaskTitle("");
                   setTaskDesc("");
+                  setEstMinutes(60);
+                  setScheduledStart("");
+                  setScheduledEnd("");
                 } catch (e: any) {
                   alert(e?.message || "Failed to create task");
                 } finally {

@@ -542,6 +542,107 @@ drop policy if exists "tasks_write_server_only" on public.tasks;
 create policy "tasks_write_server_only"
   on public.tasks for all using ( false ) with check ( false );
 
+-- 8.z.1) Extend tasks: time allocation and scheduling ------------------------
+do $$ begin
+  -- estimated_time_minutes
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'tasks' and column_name = 'estimated_time_minutes'
+  ) then
+    alter table public.tasks add column estimated_time_minutes int;
+  end if;
+
+  -- scheduled_start_at / scheduled_end_at
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'tasks' and column_name = 'scheduled_start_at'
+  ) then
+    alter table public.tasks add column scheduled_start_at timestamptz null;
+  end if;
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'tasks' and column_name = 'scheduled_end_at'
+  ) then
+    alter table public.tasks add column scheduled_end_at timestamptz null;
+  end if;
+
+  -- priority (optional)
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'tasks' and column_name = 'priority'
+  ) then
+    alter table public.tasks add column priority text default 'normal';
+  end if;
+end $$;
+
+-- Constraints (idempotent patterns)
+do $$ begin
+  begin
+    alter table public.tasks add constraint chk_tasks_estimated_time
+      check (estimated_time_minutes is null or (estimated_time_minutes > 0 and estimated_time_minutes <= 480));
+  exception when duplicate_object then null; end;
+
+  begin
+    alter table public.tasks add constraint chk_tasks_schedule_order
+      check (scheduled_end_at is null or scheduled_start_at is null or scheduled_end_at >= scheduled_start_at);
+  exception when duplicate_object then null; end;
+end $$;
+
+create index if not exists idx_tasks_scheduled_start on public.tasks (scheduled_start_at);
+
+-- 8.z.2) Task work logs ------------------------------------------------------
+create table if not exists public.task_work_logs (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid not null references public.tasks(id) on delete cascade,
+  va_id uuid not null references public.profiles(id) on delete set null,
+  action text not null,
+  at timestamptz not null default now(),
+  note text,
+  constraint chk_twl_action check (action in ('start','pause','resume','complete')),
+  constraint chk_twl_note_len check (note is null or length(note) <= 1000)
+);
+
+create index if not exists idx_twl_task_at on public.task_work_logs (task_id, at asc);
+create index if not exists idx_twl_va_at on public.task_work_logs (va_id, at desc);
+
+alter table public.task_work_logs enable row level security;
+
+drop policy if exists "twl_select_owner_va_admin" on public.task_work_logs;
+create policy "twl_select_owner_va_admin"
+  on public.task_work_logs for select using (
+    exists (
+      select 1 from public.tasks t
+      where t.id = task_id
+        and (t.customer_id = auth.uid() or t.assignee_va_id = auth.uid() or is_admin())
+    )
+  );
+
+drop policy if exists "twl_write_server_only" on public.task_work_logs;
+create policy "twl_write_server_only"
+  on public.task_work_logs for all using ( false ) with check ( false );
+
+-- 8.z.3) Customer plans ------------------------------------------------------
+create table if not exists public.customer_plans (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  plan_id uuid not null references public.plans(id) on delete restrict,
+  started_at timestamptz not null default now(),
+  ended_at timestamptz null,
+  status text not null default 'active'
+);
+
+create index if not exists idx_customer_plans_customer on public.customer_plans (customer_id, status);
+
+alter table public.customer_plans enable row level security;
+
+drop policy if exists "customer_plans_select_owner_admin" on public.customer_plans;
+create policy "customer_plans_select_owner_admin"
+  on public.customer_plans for select using ( customer_id = auth.uid() or is_admin() );
+
+drop policy if exists "customer_plans_write_server_only" on public.customer_plans;
+create policy "customer_plans_write_server_only"
+  on public.customer_plans for all using ( false ) with check ( false );
+
 -- 8.aa) Change Assistant requests -------------------------------------------
 create table if not exists public.assistant_change_requests (
   id uuid primary key default gen_random_uuid(),
