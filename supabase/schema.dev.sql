@@ -763,5 +763,3 @@ create policy "orders_write_server_only"
   on public.orders for all using ( false ) with check ( false );
 
 -- 9) Optional: create a private Storage bucket for files ---------------------
--- select storage.create_bucket('request-files', false);
-
