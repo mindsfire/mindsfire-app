@@ -735,6 +735,33 @@ $$;
 
 grant execute on function public.resolve_va_recipients(text) to anon, authenticated;
 
+-- 8.ad) Orders (for plan purchases via Razorpay) -----------------------------
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  plan_id uuid not null references public.plans(id) on delete restrict,
+  razorpay_order_id text not null unique,
+  amount integer not null,
+  currency text not null default 'INR',
+  status text not null default 'pending', -- pending | paid | failed | refunded
+  created_at timestamptz not null default now(),
+  paid_at timestamptz null,
+  raw jsonb null
+);
+
+create index if not exists idx_orders_customer_created on public.orders (customer_id, created_at desc);
+create index if not exists idx_orders_rzpid on public.orders (razorpay_order_id);
+
+alter table public.orders enable row level security;
+
+drop policy if exists "orders_select_owner_admin" on public.orders;
+create policy "orders_select_owner_admin"
+  on public.orders for select using ( customer_id = auth.uid() or is_admin() );
+
+drop policy if exists "orders_write_server_only" on public.orders;
+create policy "orders_write_server_only"
+  on public.orders for all using ( false ) with check ( false );
+
 -- 9) Optional: create a private Storage bucket for files ---------------------
 -- select storage.create_bucket('request-files', false);
 

@@ -92,8 +92,9 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
                   await postAction({ action: "message", payload: { body: messageText } });
                   setMessageOpen(false);
                   setMessageText("");
-                } catch (e: any) {
-                  alert(e?.message || "Failed to send message");
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : "Failed to send message";
+                  alert(msg);
                 } finally {
                   setMessagePending(false);
                 }
@@ -196,8 +197,9 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
                   setEstMinutes(60);
                   setScheduledStart("");
                   setScheduledEnd("");
-                } catch (e: any) {
-                  alert(e?.message || "Failed to create task");
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : "Failed to create task";
+                  alert(msg);
                 } finally {
                   setAssignPending(false);
                 }
@@ -243,8 +245,9 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
                   setChangeOpen(false);
                   setChangeReason("performance");
                   setChangeDetails("");
-                } catch (e: any) {
-                  alert(e?.message || "Failed to submit change request");
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : "Failed to submit change request";
+                  alert(msg);
                 } finally {
                   setChangePending(false);
                 }
@@ -298,8 +301,9 @@ export default function AssistantActionMenu({ name, email, phoneE164 }: Props) {
                   setEscSeverity("medium");
                   setEscSubject("");
                   setEscDetails("");
-                } catch (e: any) {
-                  alert(e?.message || "Failed to submit escalation");
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : "Failed to submit escalation";
+                  alert(msg);
                 } finally {
                   setEscalatePending(false);
                 }

@@ -71,8 +71,8 @@ export async function POST(req: Request) {
       if (!email) email = (u?.emailAddresses?.[0]?.emailAddress as string) ?? null;
       displayName = (u?.fullName as string) || displayName;
       if (!displayName) {
-        const first = (evt?.data as any)?.first_name as string | undefined;
-        const last = (evt?.data as any)?.last_name as string | undefined;
+        const first = (evt?.data?.first_name ?? undefined) as string | undefined;
+        const last = (evt?.data?.last_name ?? undefined) as string | undefined;
         if (first || last) displayName = [first, last].filter(Boolean).join(" ");
       }
     } catch {}

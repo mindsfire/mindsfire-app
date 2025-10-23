@@ -214,8 +214,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, id: entityId, type: entityType });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Internal error";
     console.error("assistant-actions error", err);
-    return NextResponse.json({ error: err?.message ?? "Internal error" }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

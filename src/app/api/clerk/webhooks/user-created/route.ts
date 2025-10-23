@@ -84,8 +84,8 @@ export async function POST(req: Request) {
       } catch {}
     }
     if (!displayName) {
-      const first = (evt?.data as any)?.first_name as string | undefined;
-      const last = (evt?.data as any)?.last_name as string | undefined;
+      const first = (evt?.data?.first_name ?? undefined) as string | undefined;
+      const last = (evt?.data?.last_name ?? undefined) as string | undefined;
       if (first || last) displayName = [first, last].filter(Boolean).join(" ");
     }
 

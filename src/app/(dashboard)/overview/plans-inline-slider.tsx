@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Script from "next/script";
 import { ChevronLeft, ChevronRight, ArrowUpCircle } from "lucide-react";
 
 type Features = {
@@ -63,9 +64,11 @@ export default function PlansInlineSlider({
   const prev = () => setIndex((i) => (i > 0 ? i - 1 : i)); // stop at start
 
   const visible = chunks[index] ?? [];
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   return (
     <div className="space-y-2 group relative">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       {/* Overlay chevrons: appear on hover, centered vertically; hidden when not usable */}
       {max > 0 && (
         <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-10 opacity-0 transition-opacity group-hover:opacity-100">
@@ -107,16 +110,58 @@ export default function PlansInlineSlider({
                 </div>
               </div>
 
-              <button className="group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent hover:bg-accent/40 w-fit">
+              <button
+                className={`group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent w-fit cursor-pointer ${loadingPlan === p.id ? 'opacity-60 cursor-not-allowed' : 'hover:bg-accent/40'}`}
+                disabled={loadingPlan === p.id}
+                aria-disabled={loadingPlan === p.id}
+                aria-busy={loadingPlan === p.id}
+                onClick={async () => {
+                  try {
+                    setLoadingPlan(p.id);
+                    const res = await fetch("/api/billing/create-order", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ plan_name: p.name }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data?.error || "Failed to create order");
+
+                    const amountInr = (Number(data.amount) / 100).toFixed(2);
+                    const description = `Plan: ${data.plan?.name ?? p.name} • INR ${amountInr}/mo`;
+
+                    // @ts-expect-error Razorpay injected by script
+                    const rzp = new window.Razorpay({
+                      key: data.keyId,
+                      amount: data.amount,
+                      currency: data.currency,
+                      name: "Mindsfire",
+                      description,
+                      order_id: data.orderId,
+                      prefill: { email: data.customer?.email },
+                      handler: function () {
+                        alert("Payment completed. Awaiting confirmation.");
+                      },
+                    });
+                    rzp.open();
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : "Unable to start checkout";
+                    alert(msg);
+                  } finally {
+                    setLoadingPlan(null);
+                  }
+                }}
+              >
                 {p.name !== "Lite" && (
                   <ArrowUpCircle className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground/80" />
                 )}
                 <span>
-                  {p.name === "Lite"
-                    ? "Start Lite Now"
-                    : p.name === "Starter"
-                    ? "Upgrade to Starter"
-                    : "Upgrade to Pro"}
+                  {loadingPlan === p.id
+                    ? 'Starting...'
+                    : p.name === "Lite"
+                      ? "Start Lite Now"
+                      : p.name === "Starter"
+                        ? "Upgrade to Starter"
+                        : "Upgrade to Pro"}
                 </span>
               </button>
             </div>

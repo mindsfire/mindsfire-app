@@ -25,9 +25,10 @@ export default function AssistantActions({ name, email, phoneE164, onAssignTask,
     ? "h-7 px-3 rounded-md text-xs bg-[#f0f8ff] text-[var(--foreground)] border border-border hover:bg-[#E9F3FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
     : "h-8 px-3 rounded-md text-xs bg-muted hover:bg-muted/80 border border-border";
 
+  const triggerLabel = name ? `Assistant actions for ${name}` : 'Assistant actions';
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger className={triggerClass} aria-label="Assistant actions">
+      <DropdownMenuTrigger className={triggerClass} aria-label={triggerLabel}>
         <span className="inline-flex items-center gap-1">
           <span>Actions</span>
           <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : "rotate-0"}`} />
