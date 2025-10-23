@@ -49,7 +49,9 @@ export async function GET(req: Request) {
       } catch {}
     }
 
-    return NextResponse.json({ ok: true, status: order.status, paid_at: order.paid_at, active_plan: activePlan, order_plan_id: (order as any).plan_id ?? null });
+    type OrderRow = { id: string; customer_id: string; status: string; paid_at: string | null; plan_id: string | null };
+    const o = order as OrderRow;
+    return NextResponse.json({ ok: true, status: o.status, paid_at: o.paid_at, active_plan: activePlan, order_plan_id: o.plan_id });
   } catch (err: unknown) {
     // During polling we prefer a soft failure so the client can keep retrying
     const msg = err instanceof Error ? err.message : "Internal error";

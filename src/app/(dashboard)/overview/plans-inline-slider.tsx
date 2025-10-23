@@ -26,6 +26,15 @@ export type Plan = {
   features: Features;
 };
 
+type OrderStatusResponse = {
+  ok: boolean;
+  status: string;
+  paid_at?: string | null;
+  active_plan?: { plan_id: string } | null;
+  order_plan_id?: string | null;
+  error?: string;
+};
+
 export default function PlansInlineSlider({
   plans,
   initialOrder = ["Lite", "Starter", "Essential"],
@@ -174,7 +183,7 @@ export default function PlansInlineSlider({
                       const timeoutMs = 60000; // 60s
                       const intervalMs = 2000; // 2s
                       let paid = false;
-                      let lastStatusData: any = null;
+                      let lastStatusData: OrderStatusResponse | null = null;
                       while (!paid && Date.now() - started < timeoutMs) {
                         try {
                           const sres = await fetch(`/api/billing/order-status?internalOrderId=${internalOrderId}`);
