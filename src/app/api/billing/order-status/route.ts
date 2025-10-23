@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     // Fetch order ensuring ownership
     const { data: order, error: ordErr } = await db
       .from("orders")
-      .select("id, customer_id, status, paid_at")
+      .select("id, customer_id, status, paid_at, plan_id")
       .eq("id", internalOrderId)
       .limit(1)
       .single();
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
       } catch {}
     }
 
-    return NextResponse.json({ ok: true, status: order.status, paid_at: order.paid_at, active_plan: activePlan });
+    return NextResponse.json({ ok: true, status: order.status, paid_at: order.paid_at, active_plan: activePlan, order_plan_id: (order as any).plan_id ?? null });
   } catch (err: unknown) {
     // During polling we prefer a soft failure so the client can keep retrying
     const msg = err instanceof Error ? err.message : "Internal error";

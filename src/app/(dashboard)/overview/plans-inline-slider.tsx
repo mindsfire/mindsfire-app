@@ -29,9 +29,11 @@ export type Plan = {
 export default function PlansInlineSlider({
   plans,
   initialOrder = ["Lite", "Starter", "Essential"],
+  activePlan: initialActivePlan = null,
 }: {
   plans: Plan[];
   initialOrder?: string[];
+  activePlan?: Plan | null;
 }) {
   // Build ordered list: initialOrder first (if present), then the rest by price then name
   const ordered = useMemo(() => {
@@ -66,6 +68,7 @@ export default function PlansInlineSlider({
   const visible = chunks[index] ?? [];
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
+  const [activePlan, setActivePlan] = useState<Plan | null>(initialActivePlan);
 
   return (
     <div className="space-y-2 group relative">
@@ -111,12 +114,20 @@ export default function PlansInlineSlider({
                 </div>
               </div>
 
-              <button
-                className={`group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent w-fit cursor-pointer ${loadingPlan === p.id || confirmingPlan === p.id ? 'opacity-60 cursor-not-allowed' : 'hover:bg-accent/40'}`}
-                disabled={loadingPlan === p.id || confirmingPlan === p.id}
-                aria-disabled={loadingPlan === p.id || confirmingPlan === p.id}
-                aria-busy={loadingPlan === p.id || confirmingPlan === p.id}
-                onClick={async () => {
+              {activePlan?.id === p.id ? (
+                <div className="mt-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-500/10 border border-green-500/20 w-fit">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                    Current Plan
+                  </span>
+                </div>
+              ) : (
+                <button
+                  className={`group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent w-fit cursor-pointer ${loadingPlan === p.id || confirmingPlan === p.id ? 'opacity-60 cursor-not-allowed' : 'hover:bg-accent/40'}`}
+                  disabled={loadingPlan === p.id || confirmingPlan === p.id}
+                  aria-disabled={loadingPlan === p.id || confirmingPlan === p.id}
+                  aria-busy={loadingPlan === p.id || confirmingPlan === p.id}
+                  onClick={async () => {
                   try {
                     setLoadingPlan(p.id);
                     const res = await fetch("/api/billing/create-order", {
@@ -163,10 +174,12 @@ export default function PlansInlineSlider({
                       const timeoutMs = 60000; // 60s
                       const intervalMs = 2000; // 2s
                       let paid = false;
+                      let lastStatusData: any = null;
                       while (!paid && Date.now() - started < timeoutMs) {
                         try {
                           const sres = await fetch(`/api/billing/order-status?internalOrderId=${internalOrderId}`);
                           const sdata = await sres.json();
+                          lastStatusData = sdata;
                           if (sres.ok && sdata?.status === "paid") {
                             paid = true;
                             break;
@@ -174,9 +187,17 @@ export default function PlansInlineSlider({
                         } catch {}
                         await new Promise((r) => setTimeout(r, intervalMs));
                       }
-                      if (paid) {
-                        // Refresh page to reflect new plan pill
-                        window.location.reload();
+                      if (paid && lastStatusData) {
+                        // Update active plan from the response
+                        const resolvedPlanId = lastStatusData?.active_plan?.plan_id || lastStatusData?.order_plan_id;
+                        if (resolvedPlanId) {
+                          const newActivePlan = plans.find(pl => pl.id === resolvedPlanId);
+                          if (newActivePlan) setActivePlan(newActivePlan);
+                        }
+                        // Clear confirming state
+                        setConfirmingPlan(null);
+                        // Optionally reload to refresh all server data
+                        // window.location.reload();
                       } else {
                         // Timed out; allow user to retry
                         setConfirmingPlan(null);
@@ -205,6 +226,7 @@ export default function PlansInlineSlider({
                           : "Upgrade to Pro"}
                 </span>
               </button>
+              )}
             </div>
           </div>
         ))}
