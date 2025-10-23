@@ -765,5 +765,3 @@ create policy "orders_write_server_only"
 -- 9) Optional: create a private Storage bucket for files ---------------------
 -- select storage.create_bucket('request-files', false);
 
--- 10) Optional: promote your user to admin ----------------------------------
--- update public.profiles set role = 'admin' where email = 'you@yourdomain.com';
