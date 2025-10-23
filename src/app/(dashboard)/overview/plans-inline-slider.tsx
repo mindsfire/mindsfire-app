@@ -65,6 +65,7 @@ export default function PlansInlineSlider({
 
   const visible = chunks[index] ?? [];
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
 
   return (
     <div className="space-y-2 group relative">
@@ -111,10 +112,10 @@ export default function PlansInlineSlider({
               </div>
 
               <button
-                className={`group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent w-fit cursor-pointer ${loadingPlan === p.id ? 'opacity-60 cursor-not-allowed' : 'hover:bg-accent/40'}`}
-                disabled={loadingPlan === p.id}
-                aria-disabled={loadingPlan === p.id}
-                aria-busy={loadingPlan === p.id}
+                className={`group relative mt-4 inline-flex items-center gap-2 justify-center rounded-md bg-accent/30 text-accent-foreground px-2 py-1 text-sm border border-transparent w-fit cursor-pointer ${loadingPlan === p.id || confirmingPlan === p.id ? 'opacity-60 cursor-not-allowed' : 'hover:bg-accent/40'}`}
+                disabled={loadingPlan === p.id || confirmingPlan === p.id}
+                aria-disabled={loadingPlan === p.id || confirmingPlan === p.id}
+                aria-busy={loadingPlan === p.id || confirmingPlan === p.id}
                 onClick={async () => {
                   try {
                     setLoadingPlan(p.id);
@@ -139,10 +140,48 @@ export default function PlansInlineSlider({
                       order_id: data.orderId,
                       prefill: { email: data.customer?.email },
                       handler: function () {
-                        alert("Payment completed. Awaiting confirmation.");
+                        // Payment completed; polling already running below
+                        // Keep confirming state until webhook confirms
+                      },
+                      modal: {
+                        ondismiss: function () {
+                          // User closed without paying
+                          setLoadingPlan(null);
+                          setConfirmingPlan(null);
+                        },
                       },
                     });
                     rzp.open();
+                    // Transition from Starting... -> Confirming... once Checkout is open
+                    setConfirmingPlan(p.id);
+                    setLoadingPlan(null);
+
+                    // Poll order status until paid or timeout
+                    const internalOrderId: string | undefined = data.internalOrderId;
+                    if (internalOrderId) {
+                      const started = Date.now();
+                      const timeoutMs = 60000; // 60s
+                      const intervalMs = 2000; // 2s
+                      let paid = false;
+                      while (!paid && Date.now() - started < timeoutMs) {
+                        try {
+                          const sres = await fetch(`/api/billing/order-status?internalOrderId=${internalOrderId}`);
+                          const sdata = await sres.json();
+                          if (sres.ok && sdata?.status === "paid") {
+                            paid = true;
+                            break;
+                          }
+                        } catch {}
+                        await new Promise((r) => setTimeout(r, intervalMs));
+                      }
+                      if (paid) {
+                        // Refresh page to reflect new plan pill
+                        window.location.reload();
+                      } else {
+                        // Timed out; allow user to retry
+                        setConfirmingPlan(null);
+                      }
+                    }
                   } catch (e) {
                     const msg = e instanceof Error ? e.message : "Unable to start checkout";
                     alert(msg);
@@ -157,11 +196,13 @@ export default function PlansInlineSlider({
                 <span>
                   {loadingPlan === p.id
                     ? 'Starting...'
-                    : p.name === "Lite"
-                      ? "Start Lite Now"
-                      : p.name === "Starter"
-                        ? "Upgrade to Starter"
-                        : "Upgrade to Pro"}
+                    : confirmingPlan === p.id
+                      ? 'Confirming...'
+                      : p.name === "Lite"
+                        ? "Start Lite Now"
+                        : p.name === "Starter"
+                          ? "Upgrade to Starter"
+                          : "Upgrade to Pro"}
                 </span>
               </button>
             </div>

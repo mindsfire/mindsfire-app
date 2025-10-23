@@ -44,7 +44,7 @@ export default function RootLayout({
 }>) {
   const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   return (
-    <html lang="en" className="theme-a">
+    <html lang="en" className="theme-a" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
