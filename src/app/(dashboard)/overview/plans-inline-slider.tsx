@@ -35,6 +35,12 @@ type OrderStatusResponse = {
   error?: string;
 };
 
+type RazorpayHandlerResponse = {
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
+};
+
 export default function PlansInlineSlider({
   plans,
   initialOrder = ["Lite", "Starter", "Essential"],
@@ -160,7 +166,7 @@ export default function PlansInlineSlider({
                       description,
                       order_id: data.orderId,
                       prefill: { email: data.customer?.email },
-                      handler: async function (response: any) {
+                      handler: async function (response: RazorpayHandlerResponse) {
                         try {
                           setConfirmingPlan(p.id);
                           if (!internalOrderId) return;
