@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { version } = require("./package.json");
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  env: {
+    NEXT_PUBLIC_APP_VERSION: version as string,
+  },
 };
 
 export default nextConfig;
