@@ -147,6 +147,7 @@ export default function PlansInlineSlider({
                     const data = await res.json();
                     if (!res.ok) throw new Error(data?.error || "Failed to create order");
 
+                    const internalOrderId: string | undefined = data.internalOrderId;
                     const amountInr = (Number(data.amount) / 100).toFixed(2);
                     const description = `Plan: ${data.plan?.name ?? p.name} • INR ${amountInr}/mo`;
 
@@ -159,9 +160,37 @@ export default function PlansInlineSlider({
                       description,
                       order_id: data.orderId,
                       prefill: { email: data.customer?.email },
-                      handler: function () {
-                        // Payment completed; polling already running below
-                        // Keep confirming state until webhook confirms
+                      handler: async function (response: any) {
+                        try {
+                          setConfirmingPlan(p.id);
+                          if (!internalOrderId) return;
+                          const vres = await fetch("/api/billing/verify-payment", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              internalOrderId,
+                              razorpay_payment_id: response?.razorpay_payment_id,
+                              razorpay_order_id: response?.razorpay_order_id,
+                              razorpay_signature: response?.razorpay_signature,
+                            }),
+                          });
+                          const vdata = await vres.json();
+                          if (vres.ok && vdata?.ok) {
+                            const resolvedPlanId: string | undefined = vdata?.active_plan_id;
+                            if (resolvedPlanId) {
+                              const newActivePlan = plans.find(pl => pl.id === resolvedPlanId);
+                              if (newActivePlan) setActivePlan(newActivePlan);
+                            }
+                            setConfirmingPlan(null);
+                            window.location.reload();
+                          } else {
+                            const msg = vdata?.error || "Payment verification failed";
+                            alert(msg);
+                          }
+                        } catch (err) {
+                          const msg = err instanceof Error ? err.message : "Payment verification error";
+                          alert(msg);
+                        }
                       },
                       modal: {
                         ondismiss: function () {
@@ -177,7 +206,6 @@ export default function PlansInlineSlider({
                     setLoadingPlan(null);
 
                     // Poll order status until paid or timeout
-                    const internalOrderId: string | undefined = data.internalOrderId;
                     if (internalOrderId) {
                       const started = Date.now();
                       const timeoutMs = 60000; // 60s

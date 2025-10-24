@@ -48,9 +48,10 @@ export default async function PlansSection() {
       // Get active customer_plan using admin client
       const { data: customerPlan } = await db
         .from("customer_plans")
-        .select("plan_id")
+        .select("plan_id, started_at")
         .eq("customer_id", profile.id)
         .eq("status", "active")
+        .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       

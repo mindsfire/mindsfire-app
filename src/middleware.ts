@@ -13,6 +13,8 @@ export const config = {
     '/api/assistant/(.*)',
     '/api/auth/(.*)',
     '/api/billing/create-order',
+    '/api/billing/order-status',
+    '/api/billing/verify-payment',
     '/api/profile/(.*)'
   ],
 }
