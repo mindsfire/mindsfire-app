@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { ChevronLeft, ChevronRight, ArrowUpCircle } from "lucide-react";
@@ -77,18 +77,9 @@ export default function PlansInlineSlider({
   const [activePlan, setActivePlan] = useState<Plan | null>(initialActivePlan);
   const router = useRouter();
 
-  // On any hard browser reload, move the active plan to the first card.
-  const [reorderActiveFirst, setReorderActiveFirst] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-    const isReload = nav?.type === 'reload';
-    if (isReload) setReorderActiveFirst(true);
-  }, []);
-
   const ordered = useMemo(() => {
     let res = [...baseOrdered];
-    if (reorderActiveFirst && activePlan) {
+    if (activePlan) {
       const idx = res.findIndex(p => p.id === activePlan.id);
       if (idx > 0) {
         const [act] = res.splice(idx, 1);
@@ -96,7 +87,7 @@ export default function PlansInlineSlider({
       }
     }
     return res;
-  }, [baseOrdered, reorderActiveFirst, activePlan?.id]);
+  }, [baseOrdered, activePlan?.id]);
 
   const chunkSize = 3;
   const chunks = useMemo(() => {
