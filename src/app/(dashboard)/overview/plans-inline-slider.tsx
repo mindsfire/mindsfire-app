@@ -280,11 +280,9 @@ export default function PlansInlineSlider({
                     ? 'Starting...'
                     : confirmingPlan === p.id
                       ? 'Confirming...'
-                      : p.name === "Lite"
-                        ? "Start Lite Now"
-                        : p.name === "Starter"
-                          ? "Upgrade to Starter"
-                          : "Upgrade to Pro"}
+                      : p.name === 'Lite'
+                        ? `Start ${p.name} Now`
+                        : `Upgrade to ${p.name}`}
                 </span>
               </button>
               )}
