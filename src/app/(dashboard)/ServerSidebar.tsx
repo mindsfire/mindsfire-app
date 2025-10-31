@@ -1,5 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { ClientNavList, type NavItem } from "./ClientNavList";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 function Divider() {
   return <div className="mx-2 h-px bg-border" />;
@@ -17,12 +18,38 @@ export default async function ServerSidebar() {
   const email = u.emailAddresses?.[0]?.emailAddress ?? "";
   const displayName = (first || last) ? `${first}${last ? " " + last : ""}` : (email.split("@")[0] || "Account");
 
-  // Role from Clerk private metadata; default to customer
   const pm = (u.privateMetadata ?? {}) as PrivateMeta;
   const role = String(pm.role ?? "customer").toLowerCase();
 
-  // Plan: until DB is mirrored by clerk_user_id, show a safe fallback
-  const plan = "No plan";
+  let plan = "No plan";
+  try {
+    const db = getSupabaseAdmin();
+    const { data: profile } = await db
+      .from("profiles")
+      .select("id")
+      .eq("clerk_id", u.id)
+      .limit(1)
+      .maybeSingle();
+    if (profile?.id) {
+      const { data: activePlanRow } = await db
+        .from("customer_plans")
+        .select("plan_id, started_at")
+        .eq("customer_id", profile.id)
+        .eq("status", "active")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (activePlanRow?.plan_id) {
+        const { data: planRow } = await db
+          .from("plans")
+          .select("name")
+          .eq("id", activePlanRow.plan_id)
+          .limit(1)
+          .maybeSingle();
+        if (planRow?.name) plan = planRow.name;
+      }
+    }
+  } catch {}
 
   const base: NavItem[] = [
     { href: "/overview", label: "Overview", iconKey: "gauge" },
