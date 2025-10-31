@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { ChevronLeft, ChevronRight, ArrowUpCircle } from "lucide-react";
@@ -52,7 +52,7 @@ export default function PlansInlineSlider({
   activePlan?: Plan | null;
 }) {
   // Build ordered list: initialOrder first (if present), then the rest by price then name
-  const ordered = useMemo(() => {
+  const baseOrdered = useMemo(() => {
     const byName = new Map(plans.map((p) => [p.name, p] as const));
     const picked: Plan[] = [];
     for (const name of initialOrder) {
@@ -69,6 +69,35 @@ export default function PlansInlineSlider({
     return [...picked, ...remaining];
   }, [plans, initialOrder]);
 
+  // chunks computed after 'ordered' is defined below
+
+  const [index, setIndex] = useState(0);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
+  const [activePlan, setActivePlan] = useState<Plan | null>(initialActivePlan);
+  const router = useRouter();
+
+  // On any hard browser reload, move the active plan to the first card.
+  const [reorderActiveFirst, setReorderActiveFirst] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const isReload = nav?.type === 'reload';
+    if (isReload) setReorderActiveFirst(true);
+  }, []);
+
+  const ordered = useMemo(() => {
+    let res = [...baseOrdered];
+    if (reorderActiveFirst && activePlan) {
+      const idx = res.findIndex(p => p.id === activePlan.id);
+      if (idx > 0) {
+        const [act] = res.splice(idx, 1);
+        res = [act, ...res];
+      }
+    }
+    return res;
+  }, [baseOrdered, reorderActiveFirst, activePlan?.id]);
+
   const chunkSize = 3;
   const chunks = useMemo(() => {
     const arr: Plan[][] = [];
@@ -76,16 +105,10 @@ export default function PlansInlineSlider({
     return arr.length ? arr : [[]];
   }, [ordered]);
 
-  const [index, setIndex] = useState(0);
   const max = Math.max(0, chunks.length - 1);
   const next = () => setIndex((i) => (i < max ? i + 1 : i)); // stop at end
   const prev = () => setIndex((i) => (i > 0 ? i - 1 : i)); // stop at start
-
   const visible = chunks[index] ?? [];
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
-  const [activePlan, setActivePlan] = useState<Plan | null>(initialActivePlan);
-  const router = useRouter();
 
   return (
     <div className="space-y-2 group relative">
@@ -189,6 +212,8 @@ export default function PlansInlineSlider({
                               const newActivePlan = plans.find(pl => pl.id === resolvedPlanId);
                               if (newActivePlan) setActivePlan(newActivePlan);
                             }
+                            // Mark to reorder on next hard reload (not on soft refresh)
+                            try { localStorage.setItem('mf_active_plan_first', '1'); } catch {}
                             setConfirmingPlan(null);
                             router.refresh();
                           } else {
