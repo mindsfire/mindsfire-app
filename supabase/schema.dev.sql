@@ -741,6 +741,8 @@ create table if not exists public.orders (
   customer_id uuid not null references public.profiles(id) on delete cascade,
   plan_id uuid not null references public.plans(id) on delete restrict,
   razorpay_order_id text not null unique,
+  -- Optional audit: store the Razorpay payment id for reconciliation
+  razorpay_payment_id text,
   amount integer not null,
   currency text not null default 'INR',
   status text not null default 'pending', -- pending | paid | failed | refunded
@@ -751,6 +753,7 @@ create table if not exists public.orders (
 
 create index if not exists idx_orders_customer_created on public.orders (customer_id, created_at desc);
 create index if not exists idx_orders_rzpid on public.orders (razorpay_order_id);
+create index if not exists idx_orders_rzp_payment_id on public.orders (razorpay_payment_id);
 
 alter table public.orders enable row level security;
 

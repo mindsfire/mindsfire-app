@@ -45,14 +45,25 @@ export async function POST(req: Request) {
     // Fetch order ensuring ownership
     const { data: order, error: ordErr } = await db
       .from("orders")
-      .select("id, customer_id, plan_id, status, razorpay_order_id")
+      .select("id, customer_id, plan_id, status, razorpay_order_id, razorpay_payment_id")
       .eq("id", internalOrderId)
       .single();
     if (ordErr || !order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (order.customer_id !== me.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    // Normalize row with typing for TS
+    type OrderRow = {
+      id: string;
+      customer_id: string;
+      plan_id: string;
+      status: string;
+      razorpay_order_id: string;
+      razorpay_payment_id?: string | null;
+    };
+    const ord = order as OrderRow;
+
     // Cross-check Razorpay order IDs
-    if (order.razorpay_order_id !== razorpay_order_id) {
+    if (ord.razorpay_order_id !== razorpay_order_id) {
       return NextResponse.json({ error: "Order mismatch" }, { status: 400 });
     }
 
@@ -66,8 +77,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    // Idempotent: if already paid, just return active plan
-    if (order.status === "paid") {
+    // Idempotent: if already paid, ensure payment id is stored and just return active plan
+    if (ord.status === "paid") {
+      if (!ord.razorpay_payment_id) {
+        await db
+          .from("orders")
+          .update({ razorpay_payment_id })
+          .eq("id", ord.id);
+      }
       const { data: act } = await db
         .from("customer_plans")
         .select("plan_id")
@@ -75,29 +92,29 @@ export async function POST(req: Request) {
         .eq("status", "active")
         .limit(1)
         .maybeSingle();
-      return NextResponse.json({ ok: true, active_plan_id: act?.plan_id ?? order.plan_id });
+      return NextResponse.json({ ok: true, active_plan_id: act?.plan_id ?? ord.plan_id });
     }
 
     // Mark order as paid
     await db
       .from("orders")
-      .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("id", order.id);
+      .update({ status: "paid", paid_at: new Date().toISOString(), razorpay_payment_id })
+      .eq("id", ord.id);
 
     // Activate/upgrade customer plan: cancel any existing active rows, then insert new active
     await db
       .from("customer_plans")
       .update({ status: "cancelled", ended_at: new Date().toISOString() })
-      .eq("customer_id", order.customer_id)
+      .eq("customer_id", ord.customer_id)
       .eq("status", "active");
 
     await db.from("customer_plans").insert({
-      customer_id: order.customer_id,
-      plan_id: order.plan_id,
+      customer_id: ord.customer_id,
+      plan_id: ord.plan_id,
       status: "active",
     });
 
-    return NextResponse.json({ ok: true, active_plan_id: order.plan_id });
+    return NextResponse.json({ ok: true, active_plan_id: ord.plan_id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Internal error";
     return NextResponse.json({ error: msg }, { status: 500 });
