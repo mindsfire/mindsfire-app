@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { ChevronLeft, ChevronRight, ArrowUpCircle } from "lucide-react";
 
@@ -84,6 +85,7 @@ export default function PlansInlineSlider({
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [confirmingPlan, setConfirmingPlan] = useState<string | null>(null);
   const [activePlan, setActivePlan] = useState<Plan | null>(initialActivePlan);
+  const router = useRouter();
 
   return (
     <div className="space-y-2 group relative">
@@ -188,7 +190,7 @@ export default function PlansInlineSlider({
                               if (newActivePlan) setActivePlan(newActivePlan);
                             }
                             setConfirmingPlan(null);
-                            window.location.reload();
+                            router.refresh();
                           } else {
                             const msg = vdata?.error || "Payment verification failed";
                             alert(msg);
