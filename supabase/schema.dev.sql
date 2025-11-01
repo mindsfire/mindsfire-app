@@ -620,17 +620,29 @@ drop policy if exists "twl_write_server_only" on public.task_work_logs;
 create policy "twl_write_server_only"
   on public.task_work_logs for all using ( false ) with check ( false );
 
--- 8.z.3) Customer plans ------------------------------------------------------
+-- Ensure enum type exists for customer plan status
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'customer_plan_status') then
+    create type customer_plan_status as enum ('active', 'cancelled', 'expired');
+  end if;
+end $$;
+
 create table if not exists public.customer_plans (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.profiles(id) on delete cascade,
   plan_id uuid not null references public.plans(id) on delete restrict,
   started_at timestamptz not null default now(),
   ended_at timestamptz null,
-  status text not null default 'active'
+  status customer_plan_status not null default 'active'
 );
 
 create index if not exists idx_customer_plans_customer on public.customer_plans (customer_id, status);
+
+-- Enforce only one active plan per customer
+create unique index if not exists ux_customer_plans_one_active
+  on public.customer_plans (customer_id)
+  where status = 'active'::customer_plan_status;
 
 alter table public.customer_plans enable row level security;
 
@@ -743,7 +755,7 @@ create table if not exists public.orders (
   -- Optional audit: store the Razorpay payment id for reconciliation
   razorpay_payment_id text,
   amount integer not null,
-  currency text not null default 'INR',
+  currency text not null default 'USD',
   status text not null default 'pending', -- pending | paid | failed | refunded
   created_at timestamptz not null default now(),
   paid_at timestamptz null,

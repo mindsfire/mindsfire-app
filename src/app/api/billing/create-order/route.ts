@@ -3,10 +3,25 @@ import { auth } from "@clerk/nextjs/server";
 import Razorpay from "razorpay";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+// Light in-memory rate limit (per process): 5 requests / 10s per user
+const RL_WINDOW_MS = 10_000;
+const RL_MAX = 5;
+const rlStore = new Map<string, number[]>();
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Rate limit
+    const now = Date.now();
+    const key = `co:${userId}`;
+    const arr = (rlStore.get(key) ?? []).filter((t) => now - t < RL_WINDOW_MS);
+    if (arr.length >= RL_MAX) {
+      return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
+    }
+    arr.push(now);
+    rlStore.set(key, arr);
 
     const parsed = (await req.json().catch(() => ({}))) as Partial<{ plan_id: string; plan_name: string }>;
     const { plan_id, plan_name } = parsed;

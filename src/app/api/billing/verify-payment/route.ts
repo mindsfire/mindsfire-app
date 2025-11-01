@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import crypto from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+// Light in-memory rate limit (per process)
+const RL_WINDOW_MS = 10_000;
+const RL_MAX = 5;
+const rlStore = new Map<string, number[]>();
+
 /*
   POST /api/billing/verify-payment
   Body: {
@@ -17,6 +22,16 @@ export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Rate limit per user
+    const now = Date.now();
+    const key = `vp:${userId}`;
+    const arr = (rlStore.get(key) ?? []).filter((t) => now - t < RL_WINDOW_MS);
+    if (arr.length >= RL_MAX) {
+      return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
+    }
+    arr.push(now);
+    rlStore.set(key, arr);
 
     const { internalOrderId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = (await req.json().catch(() => ({}))) as {
       internalOrderId?: string;
@@ -67,13 +82,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order mismatch" }, { status: 400 });
     }
 
-    // Verify signature: sha256(order_id + '|' + payment_id)
-    const expected = crypto
+    // Verify signature: sha256(order_id + '|' + payment_id) using timing-safe compare
+    const expectedHex = crypto
       .createHmac("sha256", key_secret)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
-
-    if (expected !== razorpay_signature) {
+    try {
+      const a = Buffer.from(expectedHex, "hex");
+      const b = Buffer.from(razorpay_signature, "hex");
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+      }
+    } catch {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
@@ -108,11 +128,29 @@ export async function POST(req: Request) {
       .eq("customer_id", ord.customer_id)
       .eq("status", "active");
 
-    await db.from("customer_plans").insert({
+    // Insert new active plan, tolerate rare unique-conflict races
+    const { error: insErr } = await db.from("customer_plans").insert({
       customer_id: ord.customer_id,
       plan_id: ord.plan_id,
       status: "active",
     });
+    if (insErr) {
+      // If unique constraint hit due to concurrent request, read the active row and return ok
+      // Postgres unique_violation is 23505
+      const code = (insErr as { code?: string }).code;
+      if (code === "23505") {
+        const { data: act } = await db
+          .from("customer_plans")
+          .select("plan_id")
+          .eq("customer_id", ord.customer_id)
+          .eq("status", "active")
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return NextResponse.json({ ok: true, active_plan_id: act?.plan_id ?? ord.plan_id });
+      }
+      return NextResponse.json({ error: insErr.message ?? "Plan activation failed" }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true, active_plan_id: ord.plan_id });
   } catch (e: unknown) {

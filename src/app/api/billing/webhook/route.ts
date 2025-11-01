@@ -4,10 +4,14 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 function verifySignature(bodyRaw: string, signature: string | null, secret: string) {
   if (!signature) return false;
-  const hmac = crypto.createHmac("sha256", secret);
-  hmac.update(bodyRaw, "utf8");
-  const digest = hmac.digest("hex");
-  return digest === signature;
+  try {
+    const digestHex = crypto.createHmac("sha256", secret).update(bodyRaw, "utf8").digest("hex");
+    const a = Buffer.from(digestHex, "hex");
+    const b = Buffer.from(signature, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(req: Request) {
@@ -61,10 +65,16 @@ export async function POST(req: Request) {
   // Mark as paid on success events
   const success = event === "payment.captured" || event === "order.paid";
   const newStatus = success ? "paid" : "failed";
+  const paymentId: string | undefined = payload?.payload?.payment?.entity?.id;
 
   const { error: updErr } = await db
     .from("orders")
-    .update({ status: newStatus, paid_at: success ? new Date().toISOString() : null, raw: payload })
+    .update({
+      status: newStatus,
+      paid_at: success ? new Date().toISOString() : null,
+      razorpay_payment_id: paymentId ?? null,
+      raw: payload,
+    })
     .eq("razorpay_order_id", orderId);
   if (updErr) return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
 
@@ -80,12 +90,20 @@ export async function POST(req: Request) {
     const active = activeRows?.[0] ?? null;
 
     if (!active) {
-      // First-time activation
-      await db.from("customer_plans").insert({
+      // First-time activation (handle unique-conflict races)
+      const { error: insErr } = await db.from("customer_plans").insert({
         customer_id: orderRow.customer_id,
         plan_id: orderRow.plan_id,
         status: "active",
       });
+      if (insErr) {
+        const code = (insErr as { code?: string }).code;
+        if (code === "23505") {
+          // Another process inserted active; continue
+        } else {
+          return NextResponse.json({ error: "Failed to activate plan" }, { status: 500 });
+        }
+      }
       await db.from("audit_logs").insert({
         actor_id: orderRow.customer_id,
         action: "plan_purchase",
@@ -100,11 +118,19 @@ export async function POST(req: Request) {
         .update({ status: "cancelled", ended_at: new Date().toISOString() })
         .eq("id", active.id);
 
-      await db.from("customer_plans").insert({
+      const { error: insErr2 } = await db.from("customer_plans").insert({
         customer_id: orderRow.customer_id,
         plan_id: orderRow.plan_id,
         status: "active",
       });
+      if (insErr2) {
+        const code2 = (insErr2 as { code?: string }).code;
+        if (code2 === "23505") {
+          // Another process inserted active; continue
+        } else {
+          return NextResponse.json({ error: "Failed to activate upgraded plan" }, { status: 500 });
+        }
+      }
 
       await db.from("audit_logs").insert({
         actor_id: orderRow.customer_id,
