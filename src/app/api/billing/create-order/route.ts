@@ -10,6 +10,7 @@ export async function POST(req: Request) {
 
     const parsed = (await req.json().catch(() => ({}))) as Partial<{ plan_id: string; plan_name: string }>;
     const { plan_id, plan_name } = parsed;
+    const currency = "USD"; // Locked to USD
     if (!plan_id && !plan_name) {
       return NextResponse.json({ error: "Provide plan_id or plan_name" }, { status: 400 });
     }
@@ -34,12 +35,15 @@ export async function POST(req: Request) {
     const planFilter = plan_id ? { column: "id", value: plan_id } : { column: "name", value: plan_name };
     const { data: plan, error: planErr } = await db
       .from("plans")
-      .select("id, name, monthly_price")
+      .select("id, name, price_usd")
       .eq(planFilter.column, planFilter.value)
       .single();
     if (planErr || !plan) return NextResponse.json({ error: "Plan not found" }, { status: 404 });
 
-    const amountPaise = Math.round(Number(plan.monthly_price) * 100);
+    // Amount in subunits (cents) for USD
+    type PlanRow = { id: string; name: string; price_usd: number };
+    const pr = plan as PlanRow;
+    const amountSubunits = Math.round(Number(pr.price_usd) * 100);
 
     const razorpay = new Razorpay({ key_id, key_secret });
     // Build a compact receipt (<=40 chars): p_<plan>_<8-digit time>_<6id>
@@ -49,8 +53,8 @@ export async function POST(req: Request) {
     const receipt = `p_${planTag}_${ts8}_${cust6}`.slice(0, 40);
 
     const order = await razorpay.orders.create({
-      amount: amountPaise,
-      currency: "INR",
+      amount: amountSubunits,
+      currency,
       receipt,
       notes: { plan_id: plan.id, plan_name: plan.name, customer_id: me.id },
     });
@@ -62,8 +66,8 @@ export async function POST(req: Request) {
         customer_id: me.id,
         plan_id: plan.id,
         razorpay_order_id: order.id,
-        amount: amountPaise,
-        currency: "INR",
+        amount: amountSubunits,
+        currency,
         status: "pending",
       })
       .select("id")

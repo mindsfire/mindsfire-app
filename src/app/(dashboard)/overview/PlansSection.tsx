@@ -19,7 +19,7 @@ type Features = {
 export type Plan = {
   id: string;
   name: string;
-  monthly_price: number | null;
+  price_usd: number | null;
   quota_hours: number | null;
   features: Features;
 };
@@ -27,10 +27,11 @@ export type Plan = {
 export default async function PlansSection() {
   const db = getSupabaseAdmin();
 
-  const { data: plans = [] } = await db
+  const plansRes = await db
     .from("plans")
-    .select("id,name,monthly_price,quota_hours,features")
-    .order("monthly_price", { ascending: true, nullsFirst: true });
+    .select("id,name,price_usd,quota_hours,features")
+    .order("price_usd", { ascending: true, nullsFirst: true });
+  const plans = (plansRes.data ?? []) as Plan[];
 
   // Fetch current user's active plan
   let activePlan: Plan | null = null;
@@ -56,7 +57,7 @@ export default async function PlansSection() {
         .maybeSingle();
       
       if (customerPlan?.plan_id) {
-        activePlan = (plans as Plan[]).find(p => p.id === customerPlan.plan_id) || null;
+        activePlan = plans.find(p => p.id === customerPlan.plan_id) || null;
       }
     }
   }

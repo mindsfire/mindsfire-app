@@ -22,7 +22,7 @@ type Features = {
 export type Plan = {
   id: string;
   name: string;
-  monthly_price: number | null;
+  price_usd: number | null;
   quota_hours: number | null;
   features: Features;
 };
@@ -61,8 +61,8 @@ export default function PlansInlineSlider({
     }
     const remaining = plans.filter((p) => !picked.find((x) => x.id === p.id));
     remaining.sort((a, b) => {
-      const ap = a.monthly_price ?? Number.MAX_SAFE_INTEGER;
-      const bp = b.monthly_price ?? Number.MAX_SAFE_INTEGER;
+      const ap = a.price_usd ?? Number.MAX_SAFE_INTEGER;
+      const bp = b.price_usd ?? Number.MAX_SAFE_INTEGER;
       if (ap !== bp) return ap - bp;
       return a.name.localeCompare(b.name);
     });
@@ -87,7 +87,7 @@ export default function PlansInlineSlider({
       }
     }
     return res;
-  }, [baseOrdered, activePlan?.id]);
+  }, [baseOrdered, activePlan]);
 
   const chunkSize = 3;
   const chunks = useMemo(() => {
@@ -170,8 +170,8 @@ export default function PlansInlineSlider({
                     if (!res.ok) throw new Error(data?.error || "Failed to create order");
 
                     const internalOrderId: string | undefined = data.internalOrderId;
-                    const amountInr = (Number(data.amount) / 100).toFixed(2);
-                    const description = `Plan: ${data.plan?.name ?? p.name} • INR ${amountInr}/mo`;
+                    const amountMajor = (Number(data.amount) / 100).toFixed(2);
+                    const description = `Plan: ${data.plan?.name ?? p.name} • ${data.currency} ${amountMajor}/mo`;
 
                     // @ts-expect-error Razorpay injected by script
                     const rzp = new window.Razorpay({

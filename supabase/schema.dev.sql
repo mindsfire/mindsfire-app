@@ -232,11 +232,10 @@ $$;
 
 grant execute on function is_admin() to anon, authenticated;
 
--- 4.2 plans: subscription products
 create table if not exists public.plans (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  monthly_price numeric(10,2) not null default 0,
+  price_usd numeric(10,2) not null default 0,
   quota_hours integer not null default 0,
   features jsonb not null default '{}'::jsonb
 );
