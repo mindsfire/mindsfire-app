@@ -12,7 +12,8 @@ export const config = {
     '/api/assignments/(.*)',
     '/api/assistant/(.*)',
     '/api/auth/(.*)',
-    '/api/billing/create-order',
+    '/api/billing/create-topup',
+    '/api/billing/usage-summary',
     '/api/billing/order-status',
     '/api/billing/verify-payment',
     '/api/profile/(.*)'

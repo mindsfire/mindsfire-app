@@ -628,14 +628,34 @@ begin
   end if;
 end $$;
 
+-- Plan period enum (ready for future periods)
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'plan_period') then
+    create type plan_period as enum ('monthly');
+  end if;
+end $$;
+
 create table if not exists public.customer_plans (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.profiles(id) on delete cascade,
   plan_id uuid not null references public.plans(id) on delete restrict,
   started_at timestamptz not null default now(),
   ended_at timestamptz null,
-  status customer_plan_status not null default 'active'
+  status customer_plan_status not null default 'active',
+  -- Lifecycle fields
+  period plan_period not null default 'monthly',
+  expires_at timestamptz null,
+  quota_hours_snapshot integer,
+  rollover_percent_snapshot integer not null default 0
 );
+
+-- Additional lifecycle snapshots for hours and rates
+alter table public.customer_plans
+  add column if not exists included_hours integer not null default 0,
+  add column if not exists hourly_rate_snapshot numeric(10,2) not null default 0,
+  add column if not exists addl_hourly_rate_snapshot numeric(10,2) not null default 0,
+  add column if not exists rollover_hours_applied integer not null default 0;
 
 create index if not exists idx_customer_plans_customer on public.customer_plans (customer_id, status);
 
@@ -756,6 +776,7 @@ create table if not exists public.orders (
   razorpay_payment_id text,
   amount integer not null,
   currency text not null default 'USD',
+  purpose text not null default 'plan', -- plan | topup
   status text not null default 'pending', -- pending | paid | failed | refunded
   created_at timestamptz not null default now(),
   paid_at timestamptz null,

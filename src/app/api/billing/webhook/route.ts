@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   // Update order row idempotently
   const { data: orderRow, error: selErr } = await db
     .from("orders")
-    .select("id, customer_id, plan_id, status")
+    .select("id, customer_id, plan_id, status, purpose")
     .eq("razorpay_order_id", orderId)
     .single();
 
@@ -78,7 +78,27 @@ export async function POST(req: Request) {
     .eq("razorpay_order_id", orderId);
   if (updErr) return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
 
-  if (success) {
+  if (success && orderRow.purpose === 'plan') {
+    // Prepare plan snapshot details
+    const { data: planRow } = await db
+      .from("plans")
+      .select("id,name,quota_hours,features")
+      .eq("id", orderRow.plan_id)
+      .single();
+
+    const startedAt = new Date();
+    const expiresAt = new Date(startedAt);
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+    const quotaHoursSnapshot = planRow?.quota_hours ?? null;
+    const includedHours = planRow?.quota_hours ?? 0;
+    const hourlyRate = Number((planRow?.features as any)?.hourly_rate ?? 0);
+    const addlHourlyRate = Number((planRow?.features as any)?.additional_hourly_rate ?? 0);
+    const name = (planRow?.name || '').toLowerCase();
+    const map: Record<string, number> = { 'essential': 20, 'pro': 20, 'pro max': 25, 'scale': 25 };
+    const rolloverFromName = Object.keys(map).find(k => name === k) ? map[name] : 0;
+    const rolloverPercentSnapshot = typeof (planRow as any)?.features?.rollover_percent === 'number'
+      ? (planRow as any).features.rollover_percent as number
+      : rolloverFromName;
     // Determine current active plan (if any)
     const { data: activeRows } = await db
       .from("customer_plans")
@@ -90,11 +110,19 @@ export async function POST(req: Request) {
     const active = activeRows?.[0] ?? null;
 
     if (!active) {
-      // First-time activation (handle unique-conflict races)
+      // First-time activation (handle unique-conflict races) with snapshots
       const { error: insErr } = await db.from("customer_plans").insert({
         customer_id: orderRow.customer_id,
         plan_id: orderRow.plan_id,
         status: "active",
+        period: 'monthly',
+        expires_at: expiresAt.toISOString(),
+        quota_hours_snapshot: quotaHoursSnapshot,
+        rollover_percent_snapshot: rolloverPercentSnapshot,
+        included_hours: includedHours,
+        hourly_rate_snapshot: hourlyRate,
+        addl_hourly_rate_snapshot: addlHourlyRate,
+        rollover_hours_applied: 0,
       });
       if (insErr) {
         const code = (insErr as { code?: string }).code;
@@ -122,6 +150,14 @@ export async function POST(req: Request) {
         customer_id: orderRow.customer_id,
         plan_id: orderRow.plan_id,
         status: "active",
+        period: 'monthly',
+        expires_at: expiresAt.toISOString(),
+        quota_hours_snapshot: quotaHoursSnapshot,
+        rollover_percent_snapshot: rolloverPercentSnapshot,
+        included_hours: includedHours,
+        hourly_rate_snapshot: hourlyRate,
+        addl_hourly_rate_snapshot: addlHourlyRate,
+        rollover_hours_applied: 0,
       });
       if (insErr2) {
         const code2 = (insErr2 as { code?: string }).code;
