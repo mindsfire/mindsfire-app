@@ -91,13 +91,17 @@ export async function POST(req: Request) {
     expiresAt.setMonth(expiresAt.getMonth() + 1);
     const quotaHoursSnapshot = planRow?.quota_hours ?? null;
     const includedHours = planRow?.quota_hours ?? 0;
-    const hourlyRate = Number((planRow?.features as any)?.hourly_rate ?? 0);
-    const addlHourlyRate = Number((planRow?.features as any)?.additional_hourly_rate ?? 0);
+    type PlanFeatures = { hourly_rate?: number; additional_hourly_rate?: number; rollover_percent?: number };
+    const featuresUnknown = (planRow?.features ?? null) as unknown;
+    const features: PlanFeatures | null =
+      featuresUnknown && typeof featuresUnknown === "object" ? (featuresUnknown as PlanFeatures) : null;
+    const hourlyRate = Number(features?.hourly_rate ?? 0);
+    const addlHourlyRate = Number(features?.additional_hourly_rate ?? 0);
     const name = (planRow?.name || '').toLowerCase();
     const map: Record<string, number> = { 'essential': 20, 'pro': 20, 'pro max': 25, 'scale': 25 };
     const rolloverFromName = Object.keys(map).find(k => name === k) ? map[name] : 0;
-    const rolloverPercentSnapshot = typeof (planRow as any)?.features?.rollover_percent === 'number'
-      ? (planRow as any).features.rollover_percent as number
+    const rolloverPercentSnapshot = typeof features?.rollover_percent === 'number'
+      ? (features?.rollover_percent as number)
       : rolloverFromName;
     // Determine current active plan (if any)
     const { data: activeRows } = await db

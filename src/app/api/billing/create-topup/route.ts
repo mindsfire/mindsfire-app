@@ -74,7 +74,11 @@ export async function POST(req: Request) {
         .select("features")
         .eq("id", activePlan.plan_id)
         .single();
-      const fallback = Number((planRow?.features as any)?.additional_hourly_rate ?? 0);
+      type PlanFeatures = { additional_hourly_rate?: number };
+      const featuresUnknown = (planRow?.features ?? null) as unknown;
+      const features: PlanFeatures | null =
+        featuresUnknown && typeof featuresUnknown === "object" ? (featuresUnknown as PlanFeatures) : null;
+      const fallback = Number(features?.additional_hourly_rate ?? 0);
       addlRate = isFinite(fallback) && fallback > 0 ? fallback : 0;
     }
     if (addlRate <= 0) {

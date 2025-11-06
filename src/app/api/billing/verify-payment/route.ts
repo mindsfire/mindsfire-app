@@ -153,14 +153,18 @@ export async function POST(req: Request) {
     expiresAt.setMonth(expiresAt.getMonth() + 1);
     const quotaHoursSnapshot = planRow?.quota_hours ?? null;
     const includedHours = planRow?.quota_hours ?? 0;
-    const hourlyRate = Number((planRow?.features as any)?.hourly_rate ?? 0);
-    const addlHourlyRate = Number((planRow?.features as any)?.additional_hourly_rate ?? 0);
+    type PlanFeatures = { hourly_rate?: number; additional_hourly_rate?: number; rollover_percent?: number };
+    const featuresUnknown = (planRow?.features ?? null) as unknown;
+    const features: PlanFeatures | null =
+      featuresUnknown && typeof featuresUnknown === "object" ? (featuresUnknown as PlanFeatures) : null;
+    const hourlyRate = Number(features?.hourly_rate ?? 0);
+    const addlHourlyRate = Number(features?.additional_hourly_rate ?? 0);
     // Determine rollover percent based on plan or features
     const name = (planRow?.name || '').toLowerCase();
     const map: Record<string, number> = { 'essential': 20, 'pro': 20, 'pro max': 25, 'scale': 25 };
     const rolloverFromName = Object.keys(map).find(k => name === k) ? map[name] : 0;
-    const rolloverPercentSnapshot = typeof planRow?.features?.rollover_percent === 'number'
-      ? planRow?.features?.rollover_percent as unknown as number
+    const rolloverPercentSnapshot = typeof features?.rollover_percent === 'number'
+      ? (features?.rollover_percent as number)
       : rolloverFromName;
 
     // Calculate carry-forward from previous cycle usage if there was a previous active plan
@@ -171,7 +175,7 @@ export async function POST(req: Request) {
 
       // Fetch task ids for this customer
       const { data: tasks } = await db.from("tasks").select("id").eq("customer_id", ord.customer_id);
-      const taskIds = (tasks ?? []).map((t: any) => t.id);
+      const taskIds = (tasks ?? []).map((t: { id: string }) => t.id);
       let usedSeconds = 0;
       if (taskIds.length) {
         const { data: logs } = await db
