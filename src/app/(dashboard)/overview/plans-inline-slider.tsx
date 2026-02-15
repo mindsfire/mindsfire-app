@@ -311,12 +311,12 @@ export default function PlansInlineSlider({
             </Dialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
-                <button className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">
+                <button className="inline-flex cursor-pointer items-center justify-center rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">
                   Cancel
                 </button>
               </Dialog.Close>
               <button
-                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+                className="inline-flex cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
                 onClick={() => confirmPlan && handleUpgrade(confirmPlan)}
                 disabled={!confirmPlan}
               >
