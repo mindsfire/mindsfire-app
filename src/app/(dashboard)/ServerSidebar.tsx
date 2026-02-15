@@ -60,7 +60,7 @@ export default async function ServerSidebar() {
     { href: "/myassistant", label: "My Assistant", iconKey: "user" },
     { href: "/tasks", label: "Tasks", iconKey: "tasks" },
     { href: "/usage", label: "Usage", iconKey: "bar-chart" },
-    { href: "/billing", label: "Billing & Invoices", iconKey: "receipt" },
+    { href: "/billing", label: "Manage Plan", iconKey: "receipt" },
     { href: "/contact", label: "Contact Us", iconKey: "message" },
     { href: "/referrals", label: "Referrals", iconKey: "gift" },
   ];

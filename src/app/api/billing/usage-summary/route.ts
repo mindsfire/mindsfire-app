@@ -15,7 +15,7 @@ function secondsBetween(a: Date, b: Date) {
   GET /api/billing/usage-summary
   Returns current cycle usage and overage for the authenticated customer.
 */
-export async function GET(_req: Request) {
+export async function GET(_: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
